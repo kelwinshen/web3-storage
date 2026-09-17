@@ -126,5 +126,27 @@ describe('summarize', () => {
     // expiresAt 100 is still active at anchor 50 (extensions_blocked or not);
     // expiresAt 10 is expired
     expect(stats.activeAgreements).toBe(2)
+    expect(stats.bucketCount).toBe(0)
+    expect(stats.openChallenges).toBe(0)
+  })
+
+  it('reports undefined, not 0, for a section that failed to load', () => {
+    const snapshot: NetworkSnapshot = {
+      providers: [],
+      agreements: [agreement({ expiresAt: 100 })],
+      buckets: [],
+      openChallenges: [],
+      bucketsEverCreated: 3,
+      failedSections: ['providers'],
+      fetchedAt: 0,
+    }
+    const stats = summarize(snapshot, 50)
+    // A failed providers call must not read as "this network has no providers".
+    expect(stats.providerCount).toBeUndefined()
+    expect(stats.totalStake).toBeUndefined()
+    expect(stats.totalData).toBeUndefined()
+    // Sections that did load still report their real value, including 0.
+    expect(stats.activeAgreements).toBe(1)
+    expect(stats.bucketCount).toBe(0)
   })
 })

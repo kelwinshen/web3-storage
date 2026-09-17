@@ -515,16 +515,17 @@ impl ProviderClient {
     // Monitoring & Analytics
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// Get your provider statistics.
+    /// Get your provider statistics, or `None` if the account is not a
+    /// registered provider.
     ///
     /// Via the `provider_info` runtime API, so `reputation` is the chain's own
     /// number rather than a formula re-implemented here.
-    pub async fn get_stats(&self) -> ClientResult<ProviderStats> {
+    pub async fn get_stats(&self) -> ClientResult<Option<ProviderStats>> {
         let Some(info) = self.get_provider_info(&self.provider_account()).await? else {
-            return Ok(ProviderStats::default());
+            return Ok(None);
         };
 
-        Ok(ProviderStats {
+        Ok(Some(ProviderStats {
             stake: info.stake,
             committed_bytes: info.committed_bytes,
             agreements_total: info.agreements_total,
@@ -533,47 +534,43 @@ impl ProviderClient {
             challenges_received_public: info.challenges_received_public,
             challenges_failed: info.challenges_failed,
             reputation: info.reputation,
-        })
+        }))
     }
 
-    /// Get your total earnings (all time).
+    /// Get your total earnings (all time), or `None` if the account is not a
+    /// registered provider.
     ///
     /// The chain's `lifetime_revenue`, counted from the current registration —
     /// deregistering drops the provider record and the tally with it.
-    pub async fn get_total_earnings(&self) -> ClientResult<u128> {
+    pub async fn get_total_earnings(&self) -> ClientResult<Option<u128>> {
         Ok(self
             .get_provider_info(&self.provider_account())
             .await?
-            .map(|info| info.lifetime_revenue)
-            .unwrap_or(0))
+            .map(|info| info.lifetime_revenue))
     }
 
-    /// Get your current committed bytes vs available capacity.
+    /// Get your current committed bytes vs available capacity, or `None` if
+    /// the account is not a registered provider.
     ///
     /// `available_bytes` is the chain's `available_capacity`: `None` is
     /// unlimited, distinct from `Some(0)` ("full").
-    pub async fn get_capacity_info(&self) -> ClientResult<CapacityInfo> {
+    pub async fn get_capacity_info(&self) -> ClientResult<Option<CapacityInfo>> {
         let Some(info) = self.get_provider_info(&self.provider_account()).await? else {
-            return Ok(CapacityInfo {
-                committed_bytes: 0,
-                available_bytes: Some(0),
-                stake: 0,
-                required_stake: 0,
-            });
+            return Ok(None);
         };
 
-        Ok(CapacityInfo {
+        Ok(Some(CapacityInfo {
             committed_bytes: info.committed_bytes,
             available_bytes: info.available_capacity,
             stake: info.stake,
             required_stake: 0,
-        })
+        }))
     }
 
-    /// Monitor reputation score.
-    pub async fn get_reputation(&self) -> ClientResult<u8> {
-        let stats = self.get_stats().await?;
-        Ok(stats.reputation)
+    /// Monitor reputation score, or `None` if the account is not a registered
+    /// provider. An unregistered account has no score — it is not a zero.
+    pub async fn get_reputation(&self) -> ClientResult<Option<u8>> {
+        Ok(self.get_stats().await?.map(|stats| stats.reputation))
     }
 }
 
@@ -619,7 +616,7 @@ pub struct ChallengeInfo {
     pub chunk_index: u64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ProviderStats {
     pub stake: u128,
     pub committed_bytes: u64,

@@ -134,9 +134,9 @@ export default function ProviderPickerPanel({
                 // `undefined` is unlimited — nothing to meter.
                 const free = p.availableCapacity;
                 const utilization =
-                  free === undefined
-                    ? 0
-                    : Number(((p.maxCapacity - free) * 100n) / p.maxCapacity);
+                  free !== undefined && p.maxCapacity > 0n
+                    ? Number(((p.maxCapacity - free) * 100n) / p.maxCapacity)
+                    : 0;
                 return (
                   <tr
                     key={p.account}

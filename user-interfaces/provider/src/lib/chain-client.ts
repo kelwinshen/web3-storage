@@ -221,8 +221,8 @@ export interface OnChainProviderInfo {
   registeredAt: number
   multiaddr?: string
   deregisterAt?: number
-  /** Chain's `lifetime_revenue`; `undefined` on runtimes predating the field. */
-  lifetimeRevenue?: bigint
+  /** Chain's `lifetime_revenue` for the current registration. */
+  lifetimeRevenue: bigint
 }
 
 export interface OnChainProviderSettings {
@@ -332,7 +332,7 @@ export async function getProviderData(
     registeredAt: provider.stats.registered_at,
     multiaddr: new TextDecoder().decode(provider.multiaddr),
     deregisterAt: provider.deregister_at ?? undefined,
-    lifetimeRevenue: provider.stats.lifetime_revenue ?? undefined,
+    lifetimeRevenue: provider.stats.lifetime_revenue,
   }
   const s = provider.settings
   const settings: OnChainProviderSettings = {

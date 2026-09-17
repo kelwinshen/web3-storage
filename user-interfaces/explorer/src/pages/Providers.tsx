@@ -125,7 +125,9 @@ export function Providers() {
                       <TableCell>{formatTokens(p.stake)}</TableCell>
                       <TableCell>
                         {formatBytes(p.committedBytes)} /{' '}
-                        {p.availableCapacity === undefined
+                        {/* Same test as the detail panel's Max capacity: the
+                            cell renders maxCapacity, so it reads maxCapacity. */}
+                        {p.settings.maxCapacity === 0n
                           ? 'unlimited'
                           : formatBytes(p.settings.maxCapacity)}
                       </TableCell>

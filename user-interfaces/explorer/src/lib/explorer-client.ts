@@ -11,7 +11,7 @@
  * computed by the pallet, never stored, so only the runtime API has them.
  */
 
-import { requireApi } from '@/lib/chain-client'
+import { requireApi, requireClient } from '@/lib/chain-client'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Row types
@@ -142,8 +142,14 @@ async function fetchProviders(): Promise<ProviderRow[]> {
   const api = requireApi()
   const rows: ProviderRow[] = []
 
+  // Every page reads the same block. The pallet pages with
+  // `Providers::iter().skip(offset)` over hash-ordered keys, so a registration
+  // between two calls shifts the boundary and one provider is skipped; a
+  // deregistration repeats one.
+  const at = (await requireClient().getFinalizedBlock()).hash
+
   for (let offset = 0; ; offset += PROVIDER_PAGE_SIZE) {
-    const page = await api.apis.StorageProviderApi.providers(offset, PROVIDER_PAGE_SIZE)
+    const page = await api.apis.StorageProviderApi.providers(offset, PROVIDER_PAGE_SIZE, { at })
 
     for (const [account, info] of page) {
       rows.push({
@@ -290,25 +296,34 @@ export function agreementStatus(a: AgreementRow, anchorBlock: number): Agreement
   return 'active'
 }
 
+/**
+ * Network totals. A field is `undefined` when the section it derives from
+ * failed to load — a failed section must not report 0, which reads as a real
+ * measurement ("this network has no providers").
+ */
 export interface SummaryStats {
-  providerCount: number
-  totalStake: bigint
+  providerCount: number | undefined
+  totalStake: bigint | undefined
   /** Σ committed_bytes over providers — bytes currently under agreement. */
-  totalData: bigint
-  activeAgreements: number
-  bucketCount: number
-  openChallenges: number
+  totalData: bigint | undefined
+  activeAgreements: number | undefined
+  bucketCount: number | undefined
+  openChallenges: number | undefined
 }
 
 export function summarize(s: NetworkSnapshot, anchorBlock: number): SummaryStats {
+  const loaded = (section: string) => !s.failedSections.includes(section)
+  const providers = loaded('providers')
+
   return {
-    providerCount: s.providers.length,
-    totalStake: s.providers.reduce((acc, p) => acc + p.stake, 0n),
-    totalData: s.providers.reduce((acc, p) => acc + p.committedBytes, 0n),
-    activeAgreements: s.agreements.filter((a) => agreementStatus(a, anchorBlock) === 'active')
-      .length,
-    bucketCount: s.buckets.length,
-    openChallenges: s.openChallenges.length,
+    providerCount: providers ? s.providers.length : undefined,
+    totalStake: providers ? s.providers.reduce((acc, p) => acc + p.stake, 0n) : undefined,
+    totalData: providers ? s.providers.reduce((acc, p) => acc + p.committedBytes, 0n) : undefined,
+    activeAgreements: loaded('agreements')
+      ? s.agreements.filter((a) => agreementStatus(a, anchorBlock) === 'active').length
+      : undefined,
+    bucketCount: loaded('buckets') ? s.buckets.length : undefined,
+    openChallenges: loaded('challenges') ? s.openChallenges.length : undefined,
   }
 }
 

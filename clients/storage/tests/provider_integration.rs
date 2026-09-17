@@ -180,7 +180,8 @@ async fn test_get_stats_consistent() {
     let stats = provider
         .get_stats()
         .await
-        .expect("get_stats should not error");
+        .expect("get_stats should not error")
+        .expect("Alice should be registered");
 
     println!(
         "Alice stats: stake={} committed={} agreements_total={} extended={} defended(auth={} public={}) failed={} reputation={}",
@@ -231,7 +232,8 @@ async fn test_get_total_earnings_matches_lifetime_revenue() {
     let earnings = provider
         .get_total_earnings()
         .await
-        .expect("get_total_earnings should not error");
+        .expect("get_total_earnings should not error")
+        .expect("Alice should be registered");
 
     let pi = provider
         .get_provider_info(&dev_account("alice"))
@@ -263,7 +265,8 @@ async fn test_get_capacity_info() {
     let info = provider
         .get_capacity_info()
         .await
-        .expect("get_capacity_info should not error");
+        .expect("get_capacity_info should not error")
+        .expect("Alice should be registered");
 
     println!(
         "Capacity: committed={} available={:?} stake={}",
@@ -316,11 +319,13 @@ async fn test_get_reputation_matches_stats() {
     let reputation = provider
         .get_reputation()
         .await
-        .expect("get_reputation should not error");
+        .expect("get_reputation should not error")
+        .expect("Alice should be registered");
     let stats = provider
         .get_stats()
         .await
-        .expect("get_stats should not error");
+        .expect("get_stats should not error")
+        .expect("Alice should be registered");
 
     println!("Alice's reputation: {reputation}");
     assert!(reputation <= 100, "reputation must be 0–100");
@@ -417,6 +422,7 @@ async fn test_add_stake_increases_stake() {
         .get_stats()
         .await
         .expect("get_stats should succeed")
+        .expect("Alice should be registered")
         .stake;
 
     let increment = 1_000_000_000_000u128; // 1 token.
@@ -430,6 +436,7 @@ async fn test_add_stake_increases_stake() {
         .get_stats()
         .await
         .expect("get_stats should succeed")
+        .expect("Alice should be registered")
         .stake;
 
     assert_eq!(
