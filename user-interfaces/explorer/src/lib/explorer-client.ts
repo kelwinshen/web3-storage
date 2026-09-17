@@ -3,10 +3,12 @@
 /**
  * Explorer data layer — one-shot network-wide snapshots of on-chain state.
  *
- * Everything is read via full-map `getEntries()` scans, matching how the
+ * Most sections are read via full-map `getEntries()` scans, matching how the
  * other apps read chain state. Fine at current network sizes; the pallet's
- * paginated runtime APIs (`StorageProviderApi.providers(offset, limit)` etc.)
- * are the upgrade path when scans get expensive.
+ * paginated runtime APIs are the upgrade path when scans get expensive.
+ *
+ * Providers already went that way: `reputation` and `available_capacity` are
+ * computed by the pallet, never stored, so only the runtime API has them.
  */
 
 import { requireApi } from '@/lib/chain-client'
@@ -46,6 +48,10 @@ export interface ProviderStats {
   challengesDefendedPublic: number
   /** Challenges the provider lost (slashed). */
   challengesFailed: number
+  /** Every payment this registration has received; a slash never reduces it. */
+  lifetimeRevenue: bigint
+  /** 0-100, computed on-chain by `ProviderStats::reputation`. */
+  reputation: number
 }
 
 export interface ProviderRow {
@@ -54,6 +60,8 @@ export interface ProviderRow {
   stake: bigint
   /** Bytes currently under agreement (the pallet keeps this in sync). */
   committedBytes: bigint
+  /** Free capacity per the chain; `undefined` = unlimited, not `0n` ("full"). */
+  availableCapacity: bigint | undefined
   settings: ProviderSettings
   stats: ProviderStats
   deregisterAt: number | undefined
@@ -126,6 +134,58 @@ export interface NetworkSnapshot {
 // Snapshot loading
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Providers per `StorageProviderApi.providers` call. */
+const PROVIDER_PAGE_SIZE = 200
+
+/** Walk every registered provider through the paginated runtime API. */
+async function fetchProviders(): Promise<ProviderRow[]> {
+  const api = requireApi()
+  const rows: ProviderRow[] = []
+
+  for (let offset = 0; ; offset += PROVIDER_PAGE_SIZE) {
+    const page = await api.apis.StorageProviderApi.providers(offset, PROVIDER_PAGE_SIZE)
+
+    for (const [account, info] of page) {
+      rows.push({
+        address: account,
+        multiaddr: new TextDecoder().decode(info.multiaddr),
+        stake: info.stake,
+        committedBytes: BigInt(info.committed_bytes),
+        availableCapacity:
+          info.available_capacity == null ? undefined : BigInt(info.available_capacity),
+        settings: {
+          minDuration: info.min_duration,
+          maxDuration: info.max_duration,
+          pricePerByte: info.price_per_byte,
+          acceptingPrimary: info.accepting_primary,
+          replicaSyncPrice: info.replica_sync_price ?? undefined,
+          acceptingExtensions: info.accepting_extensions,
+          maxCapacity: BigInt(info.max_capacity),
+        },
+        stats: {
+          registeredAt: info.stats.registered_at,
+          agreementsTotal: info.stats.agreements_total,
+          agreementsExtended: info.stats.agreements_extended,
+          agreementsNotExtended: info.stats.agreements_not_extended,
+          agreementsBurned: info.stats.agreements_burned,
+          totalBytesCommitted: BigInt(info.stats.total_bytes_committed),
+          challengesDefendedAuthorized: info.stats.challenges_received_authorized,
+          challengesDefendedPublic: info.stats.challenges_received_public,
+          challengesFailed: info.stats.challenges_failed,
+          lifetimeRevenue: info.stats.lifetime_revenue,
+          reputation: info.stats.reputation,
+        },
+        deregisterAt: info.deregister_at ?? undefined,
+      })
+    }
+
+    // A short page is the last one — the API caps at `limit` per call.
+    if (page.length < PROVIDER_PAGE_SIZE) break
+  }
+
+  return rows
+}
+
 export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
   const api = requireApi()
   const failedSections: string[] = []
@@ -143,38 +203,7 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
   }
 
   const [providers, agreements, buckets, openChallenges, bucketsEverCreated] = await Promise.all([
-      safe('providers', [] as ProviderRow[], async () => {
-        const entries = await api.query.StorageProvider.Providers.getEntries()
-        return entries.map(({ keyArgs, value }) => ({
-          address: keyArgs[0],
-          multiaddr: new TextDecoder().decode(value.multiaddr),
-          stake: value.stake,
-          committedBytes: BigInt(value.committed_bytes),
-          settings: {
-            minDuration: value.settings.min_duration,
-            maxDuration: value.settings.max_duration,
-            pricePerByte: value.settings.price_per_byte,
-            acceptingPrimary: value.settings.accepting_primary,
-            replicaSyncPrice: value.settings.replica_sync_price,
-            acceptingExtensions: value.settings.accepting_extensions,
-            maxCapacity: BigInt(value.settings.max_capacity),
-          },
-          stats: {
-            registeredAt: value.stats.registered_at,
-            agreementsTotal: value.stats.agreements_total,
-            agreementsExtended: value.stats.agreements_extended,
-            agreementsNotExtended: value.stats.agreements_not_extended,
-            agreementsBurned: value.stats.agreements_burned,
-            totalBytesCommitted: BigInt(value.stats.total_bytes_committed),
-            // ?? 0: on a runtime predating the authorized/public tier split
-            // the fields are absent; missing must not read as a render crash.
-            challengesDefendedAuthorized: value.stats.challenges_received_authorized ?? 0,
-            challengesDefendedPublic: value.stats.challenges_received_public ?? 0,
-            challengesFailed: value.stats.challenges_failed,
-          },
-          deregisterAt: value.deregister_at ?? undefined,
-        }))
-      }),
+      safe('providers', [] as ProviderRow[], fetchProviders),
 
       safe('agreements', [] as AgreementRow[], async () => {
         const entries = await api.query.StorageProvider.StorageAgreements.getEntries()
@@ -259,19 +288,6 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
 export function agreementStatus(a: AgreementRow, anchorBlock: number): AgreementStatus {
   if (anchorBlock > a.expiresAt && a.expiresAt > 0) return 'expired'
   return 'active'
-}
-
-/**
- * A provider's 0-100 reputation: the share of resolved challenges it
- * defended. Mirrors the pallet's `ProviderStats::reputation` (lib.rs) over
- * the same stats fields, so no extra RPC is needed. Providers with no
- * resolved challenges score 100 — benefit of the doubt, matching the chain.
- */
-export function reputationScore(stats: ProviderStats): number {
-  const defended = stats.challengesDefendedAuthorized + stats.challengesDefendedPublic
-  const total = defended + stats.challengesFailed
-  if (total === 0) return 100
-  return Math.min(Math.floor((defended * 100) / total), 100)
 }
 
 export interface SummaryStats {

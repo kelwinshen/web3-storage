@@ -210,13 +210,17 @@ async fn test_get_stats_consistent() {
         .expect("challenge counters must not overflow");
 }
 
-/// `get_total_earnings` always returns `Ok(0)` — earnings aren't tracked on-chain.
+/// `get_total_earnings` reports the chain's `lifetime_revenue`, cross-checked
+/// against `get_provider_info` so reading the wrong field shows up as a
+/// mismatch rather than as a plausible-looking number.
 #[tokio::test]
-async fn test_get_total_earnings_returns_zero() {
+async fn test_get_total_earnings_matches_lifetime_revenue() {
     let _guard = chain_guard().await;
 
     if chain_setup().await.is_none() {
-        eprintln!("Chain not reachable — skipping test_get_total_earnings_returns_zero");
+        eprintln!(
+            "Chain not reachable — skipping test_get_total_earnings_matches_lifetime_revenue"
+        );
         return;
     }
 
@@ -229,9 +233,16 @@ async fn test_get_total_earnings_returns_zero() {
         .await
         .expect("get_total_earnings should not error");
 
+    let pi = provider
+        .get_provider_info(&dev_account("alice"))
+        .await
+        .expect("get_provider_info should not error")
+        .expect("Alice should be registered");
+
+    println!("Alice's lifetime revenue: {earnings}");
     assert_eq!(
-        earnings, 0,
-        "earnings are not stored on-chain; get_total_earnings always returns 0"
+        earnings, pi.lifetime_revenue,
+        "get_total_earnings should report the chain's lifetime_revenue"
     );
 }
 
@@ -255,7 +266,7 @@ async fn test_get_capacity_info() {
         .expect("get_capacity_info should not error");
 
     println!(
-        "Capacity: committed={} available={} stake={}",
+        "Capacity: committed={} available={:?} stake={}",
         info.committed_bytes, info.available_bytes, info.stake
     );
 
@@ -263,8 +274,9 @@ async fn test_get_capacity_info() {
         info.stake > 0,
         "stake should be positive for registered provider"
     );
-    // get_capacity_info uses saturating_sub internally; the sum is therefore bounded
-    // by max_capacity. Re-query max_capacity through ProviderInfo and cross-check.
+    // `available_bytes` is the chain's `available_capacity` verbatim, so this
+    // cross-checks the two APIs instead of re-deriving the number. An unlimited
+    // provider reports `None`, never a silent 0.
     let pi = provider
         .get_provider_info(&dev_account("alice"))
         .await
@@ -275,10 +287,15 @@ async fn test_get_capacity_info() {
         "committed_bytes should match ProviderInfo"
     );
     assert_eq!(
-        info.available_bytes,
-        pi.max_capacity.saturating_sub(pi.committed_bytes),
-        "available_bytes should equal max_capacity − committed_bytes"
+        info.available_bytes, pi.available_capacity,
+        "available_bytes should be the chain's available_capacity"
     );
+    if pi.max_capacity == 0 {
+        assert!(
+            info.available_bytes.is_none(),
+            "an unlimited provider reports None, not Some(0)"
+        );
+    }
 }
 
 /// `get_reputation` delegates to `get_stats().reputation`. With no failed challenges

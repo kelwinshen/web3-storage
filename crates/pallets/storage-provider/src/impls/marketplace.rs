@@ -107,6 +107,7 @@ impl<T: Config> Pallet<T> {
                     agreements_extended: info.stats.agreements_extended,
                     agreements_not_extended: info.stats.agreements_not_extended,
                     agreements_burned: info.stats.agreements_burned,
+                    total_bytes_committed: info.stats.total_bytes_committed,
                     challenges_received_authorized: info.stats.challenges_received_authorized,
                     challenges_received_public: info.stats.challenges_received_public,
                     challenges_failed: info.stats.challenges_failed,
@@ -202,6 +203,7 @@ impl<T: Config> Pallet<T> {
                             agreements_extended: info.stats.agreements_extended,
                             agreements_not_extended: info.stats.agreements_not_extended,
                             agreements_burned: info.stats.agreements_burned,
+                            total_bytes_committed: info.stats.total_bytes_committed,
                             challenges_received_authorized: info
                                 .stats
                                 .challenges_received_authorized,

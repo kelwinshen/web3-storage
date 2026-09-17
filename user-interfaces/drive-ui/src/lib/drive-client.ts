@@ -69,7 +69,8 @@ export interface AvailableProvider {
   account: string;
   multiaddr: string;
   stake: bigint;
-  availableCapacity: bigint;
+  /** Free capacity per the chain; `undefined` = unlimited, not `0n` ("full"). */
+  availableCapacity: bigint | undefined;
   maxCapacity: bigint;
   pricePerByte: bigint;
   minDuration: number;
@@ -96,6 +97,16 @@ export interface MatchingProviders extends AvailableProvider {
   /** Challenges resolved in the provider's favor (authorized + public tiers). */
   challengesDefended: number;
   challengesFailed: number;
+  /** 0-100, computed on-chain by `ProviderStats::reputation`. */
+  reputation: number;
+}
+
+/** Most free capacity first; unlimited (`undefined`) sorts ahead of metered. */
+function byFreeCapacityDesc(a: AvailableProvider, b: AvailableProvider): number {
+  if (a.availableCapacity === b.availableCapacity) return 0;
+  if (a.availableCapacity === undefined) return -1;
+  if (b.availableCapacity === undefined) return 1;
+  return b.availableCapacity > a.availableCapacity ? 1 : -1;
 }
 
 export interface QueryMatchingProvidersParams {
@@ -266,8 +277,13 @@ export class DriveClient {
       const multiaddrStr = new TextDecoder().decode(provider.multiaddr);
       const maxCapacity = BigInt(settings.max_capacity ?? 0);
       const committedBytes = BigInt(provider.committed_bytes ?? 0);
+      // Storage has no computed capacity; `max_capacity == 0` is unlimited.
       const availableCapacity =
-        maxCapacity > committedBytes ? maxCapacity - committedBytes : 0n;
+        maxCapacity === 0n
+          ? undefined
+          : maxCapacity > committedBytes
+            ? maxCapacity - committedBytes
+            : 0n;
 
       providers.push({
         account,
@@ -283,11 +299,7 @@ export class DriveClient {
       });
     }
 
-    providers.sort((a, b) => {
-      if (b.availableCapacity > a.availableCapacity) return 1;
-      if (b.availableCapacity < a.availableCapacity) return -1;
-      return 0;
-    });
+    providers.sort(byFreeCapacityDesc);
 
     return providers;
   }
@@ -317,8 +329,9 @@ export class DriveClient {
         const info = match.info;
         const maxCapacity = BigInt(info.max_capacity ?? 0);
         const committedBytes = BigInt(info.committed_bytes ?? 0);
+        // The chain already computed this; `null` is its "unlimited".
         const availableCapacity =
-          maxCapacity > committedBytes ? maxCapacity - committedBytes : 0n;
+          info.available_capacity == null ? undefined : BigInt(info.available_capacity);
 
         return {
           account: toSs58(match.account),
@@ -343,6 +356,7 @@ export class DriveClient {
             (info.stats.challenges_received_authorized ?? 0) +
             (info.stats.challenges_received_public ?? 0),
           challengesFailed: info.stats.challenges_failed ?? 0,
+          reputation: info.stats.reputation ?? 100,
           matchScore: match.match_score,
           partialReason: match.partial_reason?.type ?? "",
         };

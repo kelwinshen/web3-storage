@@ -80,6 +80,8 @@ pub struct ProviderInfo {
     pub committed_bytes: u64,
     /// Maximum capacity (0 = unlimited).
     pub max_capacity: u64,
+    /// Free capacity per the chain; `None` is unlimited, not `Some(0)` ("full").
+    pub available_capacity: Option<u64>,
     /// Minimum agreement duration.
     pub min_duration: u32,
     /// Maximum agreement duration.
@@ -94,6 +96,12 @@ pub struct ProviderInfo {
     pub accepting_extensions: bool,
     /// Total agreements ever.
     pub agreements_total: u32,
+    /// Agreements extended at least once.
+    pub agreements_extended: u32,
+    /// Defended challenges from authorized (member/owner) challengers.
+    pub challenges_received_authorized: u32,
+    /// Same, for general-public challengers.
+    pub challenges_received_public: u32,
     /// Failed challenges count.
     pub challenges_failed: u32,
     /// Total payment ever received for storage service. Never resets, not
@@ -113,6 +121,7 @@ impl From<rt_api::ProviderInfoResponse> for ProviderInfo {
             stake: p.stake,
             committed_bytes: p.committed_bytes,
             max_capacity: p.max_capacity,
+            available_capacity: p.available_capacity,
             min_duration: p.min_duration,
             max_duration: p.max_duration,
             price_per_byte: p.price_per_byte,
@@ -120,6 +129,9 @@ impl From<rt_api::ProviderInfoResponse> for ProviderInfo {
             replica_sync_price: p.replica_sync_price,
             accepting_extensions: p.accepting_extensions,
             agreements_total: p.stats.agreements_total,
+            agreements_extended: p.stats.agreements_extended,
+            challenges_received_authorized: p.stats.challenges_received_authorized,
+            challenges_received_public: p.stats.challenges_received_public,
             challenges_failed: p.stats.challenges_failed,
             lifetime_revenue: p.stats.lifetime_revenue,
             deregister_at: p.deregister_at,

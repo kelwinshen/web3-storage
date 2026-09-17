@@ -65,6 +65,8 @@ pub struct ProviderStatsInfo {
     pub agreements_not_extended: u32,
     /// Agreements the owner closed with a burn.
     pub agreements_burned: u32,
+    /// Lifetime cumulative quota ever committed — NOT current usage.
+    pub total_bytes_committed: u64,
     /// Successfully defended challenges from authorized challengers
     /// (member/agreement owner at creation). Counted at resolution.
     pub challenges_received_authorized: u32,
