@@ -95,7 +95,7 @@ describe('bucketQuotas', () => {
   })
 })
 
-// Mirrors the pallet's reputation_score (runtime_api.rs) — keep in lockstep.
+// Mirrors the pallet's ProviderStats::reputation (lib.rs) — keep in lockstep.
 describe('reputationScore', () => {
   const stats = (authorized: number, pub_: number, failed: number) => ({
     ...provider({}).stats,

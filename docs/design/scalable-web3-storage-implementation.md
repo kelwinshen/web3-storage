@@ -999,7 +999,7 @@ connection info, the one place this response doesn't fully flatten.
 `challenge_candidates` is the challenger-side counterpart of
 `find_matching_providers`: both fold a whole-map scan plus a scoring pass into
 one call so the SDK never pages a storage map to rank providers. Reputation is
-defined once, on-chain, by `runtime_api::reputation_score` — a provider with no
+defined once, on-chain, by `ProviderStats::reputation` — a provider with no
 resolved challenges scores 100, otherwise the score is the share of resolved
 challenges it defended (both tallied at resolution, so pending ones never count). `limit` is clamped to `MAX_CHALLENGE_CANDIDATES`; it bounds the
 response, not the scan.

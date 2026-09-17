@@ -109,6 +109,9 @@ impl<T: Config> Pallet<T> {
                     .replica_sync_price
                     .map(|p| p.saturated_into::<u128>()),
                 accepting_extensions: info.settings.accepting_extensions,
+                max_capacity,
+                available_capacity,
+                deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
                 stats: crate::runtime_api::ProviderStatsInfo {
                     registered_at: info.stats.registered_at.saturated_into::<u32>(),
                     agreements_total: info.stats.agreements_total,
@@ -119,14 +122,8 @@ impl<T: Config> Pallet<T> {
                     challenges_received_public: info.stats.challenges_received_public,
                     challenges_failed: info.stats.challenges_failed,
                     lifetime_revenue: info.stats.lifetime_revenue.saturated_into::<u128>(),
+                    reputation: info.stats.reputation(),
                 },
-                max_capacity,
-                available_capacity,
-                deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
-                reputation: crate::runtime_api::reputation_score(
-                    info.stats.challenges_defended(),
-                    info.stats.challenges_failed,
-                ),
             }
         })
     }
@@ -163,6 +160,9 @@ impl<T: Config> Pallet<T> {
                             .replica_sync_price
                             .map(|p| p.saturated_into::<u128>()),
                         accepting_extensions: info.settings.accepting_extensions,
+                        max_capacity,
+                        available_capacity,
+                        deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
                         stats: crate::runtime_api::ProviderStatsInfo {
                             registered_at: info.stats.registered_at.saturated_into::<u32>(),
                             agreements_total: info.stats.agreements_total,
@@ -175,14 +175,8 @@ impl<T: Config> Pallet<T> {
                             challenges_received_public: info.stats.challenges_received_public,
                             challenges_failed: info.stats.challenges_failed,
                             lifetime_revenue: info.stats.lifetime_revenue.saturated_into::<u128>(),
+                            reputation: info.stats.reputation(),
                         },
-                        max_capacity,
-                        available_capacity,
-                        deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
-                        reputation: crate::runtime_api::reputation_score(
-                            info.stats.challenges_defended(),
-                            info.stats.challenges_failed,
-                        ),
                     },
                 )
             })

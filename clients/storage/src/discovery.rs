@@ -101,7 +101,7 @@ pub struct ProviderInfo {
     pub lifetime_revenue: u128,
     /// Block at which deregistration becomes finalisable (`None` = not deregistering).
     pub deregister_at: Option<u32>,
-    /// Reputation 0-100, computed on-chain by `runtime_api::reputation_score`.
+    /// Reputation 0-100, computed on-chain by `ProviderStats::reputation`.
     pub reputation: u8,
 }
 
@@ -123,7 +123,7 @@ impl From<rt_api::ProviderInfoResponse> for ProviderInfo {
             challenges_failed: p.stats.challenges_failed,
             lifetime_revenue: p.stats.lifetime_revenue,
             deregister_at: p.deregister_at,
-            reputation: p.reputation,
+            reputation: p.stats.reputation,
         }
     }
 }
@@ -383,7 +383,7 @@ impl DiscoveryClient {
                 }
 
                 // Reputation is defined once, on-chain, by
-                // `runtime_api::reputation_score` - never recomputed here.
+                // `ProviderStats::reputation` - never recomputed here.
                 let reliability_score = provider.info.reputation;
 
                 // Generate recommendation reason

@@ -27,7 +27,7 @@ pub struct ChallengerClient {
 }
 
 /// Top of the reputation scale, mirroring
-/// `pallet_storage_provider::runtime_api::reputation_score`, which returns
+/// `pallet_storage_provider::ProviderStats::reputation`, which returns
 /// 0..=100. Not importable: this crate depends on the generated bindings
 /// rather than on the pallet.
 const REPUTATION_SCALE_MAX: u8 = 100;
@@ -339,7 +339,7 @@ impl ChallengerClient {
                     .challenges_received_authorized
                     .saturating_add(info.stats.challenges_received_public),
                 info.stats.challenges_failed,
-                info.reputation,
+                info.stats.reputation,
             )
         } else {
             return Err(ClientError::Chain(format!("Provider {provider} not found")));

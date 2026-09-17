@@ -27,8 +27,6 @@ pub struct ProviderInfoResponse {
     pub accepting_primary: bool,
     pub replica_sync_price: Option<u128>,
     pub accepting_extensions: bool,
-    /// Historical, quality-signal statistics for this provider.
-    pub stats: ProviderStatsInfo,
     /// Maximum storage capacity in bytes (0 = unlimited).
     pub max_capacity: u64,
     /// Available capacity in bytes (None if unlimited).
@@ -36,9 +34,8 @@ pub struct ProviderInfoResponse {
     /// Anchor block at which deregistration becomes finalisable
     /// (`None` = not deregistering).
     pub deregister_at: Option<u32>,
-    /// Reputation 0-100, from [`reputation_score`]. Carried here so clients
-    /// never re-implement the formula.
-    pub reputation: u8,
+    /// Historical, quality-signal statistics for this provider.
+    pub stats: ProviderStatsInfo,
 }
 
 /// Historical, quality-signal statistics for a provider, returned as a
@@ -61,6 +58,11 @@ pub struct ProviderStatsInfo {
     /// Total payment ever received for storage service. Never resets, not
     /// even on a slash.
     pub lifetime_revenue: u128,
+    /// Reputation 0-100, from [`ProviderStats::reputation`]. Carried here so
+    /// clients never re-implement the formula.
+    ///
+    /// [`ProviderStats::reputation`]: crate::ProviderStats::reputation
+    pub reputation: u8,
 }
 
 /// Storage requirements for provider matching.
@@ -164,22 +166,10 @@ pub struct ChallengeCandidate {
     /// Same, for general-public challengers.
     pub challenges_received_public: u32,
     pub challenges_failed: u32,
-    /// Reputation 0–100, from [`reputation_score`].
+    /// Reputation 0–100, from [`ProviderStats::reputation`].
+    ///
+    /// [`ProviderStats::reputation`]: crate::ProviderStats::reputation
     pub reputation: u8,
-}
-
-/// A provider's 0–100 reputation from its on-chain challenge record: the
-/// share of resolved challenges it defended. Both counters are tallied at
-/// resolution, so pending challenges never count against a provider.
-///
-/// Providers with no resolved challenges score 100 — benefit of the doubt, so
-/// a newly registered provider is not immediately challenge-worthy.
-pub fn reputation_score(challenges_defended: u32, challenges_failed: u32) -> u8 {
-    let total = challenges_defended as u64 + challenges_failed as u64;
-    if total == 0 {
-        return 100;
-    }
-    ((challenges_defended as u64 * 100) / total).min(100) as u8
 }
 
 /// Challenge information.
@@ -268,7 +258,9 @@ sp_api::decl_runtime_apis! {
         /// appears once, paired with one of its buckets, so a caller challenges
         /// it at most once per round.
         ///
-        /// Reputation runs from 0 to 100 (see [`reputation_score`]).
+        /// Reputation runs from 0 to 100 (see [`ProviderStats::reputation`]).
+        ///
+        /// [`ProviderStats::reputation`]: crate::ProviderStats::reputation
         /// `max_reputation` saturates outside that range instead of erroring:
         /// `0` matches nothing, and any value above 100 disables the filter.
         ///

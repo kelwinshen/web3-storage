@@ -527,17 +527,21 @@ fn set_challenge_stats(who: u64, defended: u32, failed: u32) {
 
 #[test]
 fn reputation_score_matches_client_cases() {
-    use crate::runtime_api::reputation_score;
+    let stats = |defended: u32, failed: u32| ProviderStats::<Test> {
+        challenges_received_public: defended,
+        challenges_failed: failed,
+        ..Default::default()
+    };
     // No resolved challenges yet: benefit of the doubt.
-    assert_eq!(reputation_score(0, 0), 100);
+    assert_eq!(stats(0, 0).reputation(), 100);
     // Every challenge defended.
-    assert_eq!(reputation_score(10, 0), 100);
+    assert_eq!(stats(10, 0).reputation(), 100);
     // Half failed.
-    assert_eq!(reputation_score(5, 5), 50);
+    assert_eq!(stats(5, 5).reputation(), 50);
     // All failed.
-    assert_eq!(reputation_score(0, 10), 0);
+    assert_eq!(stats(0, 10).reputation(), 0);
     // Mostly failed: floor of the defended share.
-    assert_eq!(reputation_score(3, 9), 25);
+    assert_eq!(stats(3, 9).reputation(), 25);
 }
 
 #[test]

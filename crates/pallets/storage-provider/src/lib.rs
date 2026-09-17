@@ -618,6 +618,23 @@ pub mod pallet {
             self.challenges_received_authorized
                 .saturating_add(self.challenges_received_public)
         }
+
+        /// A provider's 0–100 reputation from its on-chain challenge record:
+        /// the share of resolved challenges it defended. Both counters are
+        /// tallied at resolution, so pending challenges never count against a
+        /// provider.
+        ///
+        /// Providers with no resolved challenges score 100 — benefit of the
+        /// doubt, so a newly registered provider is not immediately
+        /// challenge-worthy.
+        pub fn reputation(&self) -> u8 {
+            let defended = self.challenges_defended();
+            let total = defended as u64 + self.challenges_failed as u64;
+            if total == 0 {
+                return 100;
+            }
+            ((defended as u64 * 100) / total).min(100) as u8
+        }
     }
 
     /// Bucket member with role.

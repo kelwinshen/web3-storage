@@ -263,9 +263,9 @@ export function agreementStatus(a: AgreementRow, anchorBlock: number): Agreement
 
 /**
  * A provider's 0-100 reputation: the share of resolved challenges it
- * defended. Mirrors the pallet's `reputation_score` (runtime_api.rs) over the
- * same stats fields, so no extra RPC is needed. Providers with no resolved
- * challenges score 100 — benefit of the doubt, matching the chain.
+ * defended. Mirrors the pallet's `ProviderStats::reputation` (lib.rs) over
+ * the same stats fields, so no extra RPC is needed. Providers with no
+ * resolved challenges score 100 — benefit of the doubt, matching the chain.
  */
 export function reputationScore(stats: ProviderStats): number {
   const defended = stats.challengesDefendedAuthorized + stats.challengesDefendedPublic
