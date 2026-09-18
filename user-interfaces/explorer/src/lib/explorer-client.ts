@@ -11,6 +11,7 @@
  * computed by the pallet, never stored, so only the runtime API has them.
  */
 
+import { BlockNotPinnedError } from 'polkadot-api'
 import { requireApi, requireClient } from '@/lib/chain-client'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,19 +138,26 @@ export interface NetworkSnapshot {
 /** Providers per `StorageProviderApi.providers` call. */
 const PROVIDER_PAGE_SIZE = 200
 
-/** Walk every registered provider through the paginated runtime API. */
-async function fetchProviders(): Promise<ProviderRow[]> {
+/** Block and abort signal shared by every read of one snapshot. */
+interface ReadOptions {
+  at: string
+  signal: AbortSignal
+}
+
+/**
+ * Walk every registered provider through the paginated runtime API, every
+ * page at the same block. The pallet pages with
+ * `Providers::iter().skip(offset)` over hash-ordered keys: a key inserted
+ * before the page boundary between two calls moves the boundary element onto
+ * the next page too (one provider repeated); a key removed before it moves
+ * the next element across the boundary (one provider skipped).
+ */
+async function fetchProviders(opts: ReadOptions): Promise<ProviderRow[]> {
   const api = requireApi()
   const rows: ProviderRow[] = []
 
-  // Every page reads the same block. The pallet pages with
-  // `Providers::iter().skip(offset)` over hash-ordered keys, so a registration
-  // between two calls shifts the boundary and one provider is skipped; a
-  // deregistration repeats one.
-  const at = (await requireClient().getFinalizedBlock()).hash
-
   for (let offset = 0; ; offset += PROVIDER_PAGE_SIZE) {
-    const page = await api.apis.StorageProviderApi.providers(offset, PROVIDER_PAGE_SIZE, { at })
+    const page = await api.apis.StorageProviderApi.providers(offset, PROVIDER_PAGE_SIZE, opts)
 
     for (const [account, info] of page) {
       rows.push({
@@ -192,9 +200,42 @@ async function fetchProviders(): Promise<ProviderRow[]> {
   return rows
 }
 
+/**
+ * Retries of a whole snapshot after PAPI unpinned the block it was reading.
+ *
+ * PAPI unpins a finalized block as soon as no read holds it and a newer block
+ * is finalized. The exposed windows are the gap between `getFinalizedBlock()`
+ * and the first read, and the gaps between provider pages — each a few
+ * milliseconds against a block time of seconds, so two retries are ample.
+ */
+const MAX_UNPINNED_RETRIES = 2
+
+/**
+ * Load every section at one finalized block, so an agreement in the snapshot
+ * never references a provider the same snapshot does not contain.
+ *
+ * A read at a hash PAPI has unpinned fails with `BlockNotPinnedError` unless
+ * the node serves `archive_*`. That is not a section failure: the load
+ * restarts at the current finalized block.
+ */
 export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
+  for (let attempt = 0; ; attempt++) {
+    const at = (await requireClient().getFinalizedBlock()).hash
+    try {
+      return await loadNetworkSnapshotAt(at)
+    } catch (e) {
+      if (!(e instanceof BlockNotPinnedError) || attempt >= MAX_UNPINNED_RETRIES) throw e
+    }
+  }
+}
+
+async function loadNetworkSnapshotAt(at: string): Promise<NetworkSnapshot> {
   const api = requireApi()
   const failedSections: string[] = []
+  // One block for every read; aborted as a whole once any read finds the
+  // block unpinned, so the discarded snapshot stops loading.
+  const abort = new AbortController()
+  const opts = { at, signal: abort.signal }
 
   // A query failing (most likely a storage item missing on an older live
   // runtime) degrades its own section instead of blanking the whole app.
@@ -202,6 +243,14 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
     try {
       return await run()
     } catch (e) {
+      // The block is gone for every section, not just this one; the caller
+      // restarts the whole snapshot.
+      if (e instanceof BlockNotPinnedError) {
+        abort.abort()
+        throw e
+      }
+      // This snapshot is already discarded; the error that aborted it wins.
+      if (abort.signal.aborted) throw e
       console.warn(`explorer: failed to load ${section}:`, e)
       failedSections.push(section)
       return fallback
@@ -209,10 +258,10 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
   }
 
   const [providers, agreements, buckets, openChallenges, bucketsEverCreated] = await Promise.all([
-      safe('providers', [] as ProviderRow[], fetchProviders),
+      safe('providers', [] as ProviderRow[], () => fetchProviders(opts)),
 
       safe('agreements', [] as AgreementRow[], async () => {
-        const entries = await api.query.StorageProvider.StorageAgreements.getEntries()
+        const entries = await api.query.StorageProvider.StorageAgreements.getEntries(opts)
         return entries.map(({ keyArgs, value }) => ({
           bucketId: Number(keyArgs[0]),
           provider: keyArgs[1],
@@ -228,7 +277,7 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
       }),
 
       safe('buckets', [] as BucketRow[], async () => {
-        const entries = await api.query.StorageProvider.Buckets.getEntries()
+        const entries = await api.query.StorageProvider.Buckets.getEntries(opts)
         return entries.map(({ keyArgs, value }) => ({
           id: Number(keyArgs[0]),
           members: value.members.map((m) => ({ account: m.account, role: m.role.type })),
@@ -245,7 +294,7 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
 
       safe('challenges', [] as ChallengeRow[], async () => {
         // Rows are deleted on resolution, so every entry is an open challenge.
-        const entries = await api.query.StorageProvider.Challenges.getEntries()
+        const entries = await api.query.StorageProvider.Challenges.getEntries(opts)
         return entries
           .map(({ keyArgs, value }) => ({
             deadline: Number(keyArgs[0]),
@@ -262,7 +311,7 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
       }),
 
       safe('bucket counter', 0, async () =>
-        Number(await api.query.StorageProvider.NextBucketId.getValue())
+        Number(await api.query.StorageProvider.NextBucketId.getValue(opts))
       ),
     ])
 
@@ -308,6 +357,8 @@ export interface SummaryStats {
   totalData: bigint | undefined
   activeAgreements: number | undefined
   bucketCount: number | undefined
+  /** NextBucketId — buckets ever created, deleted ones included. */
+  bucketsEverCreated: number | undefined
   openChallenges: number | undefined
 }
 
@@ -323,6 +374,7 @@ export function summarize(s: NetworkSnapshot, anchorBlock: number): SummaryStats
       ? s.agreements.filter((a) => agreementStatus(a, anchorBlock) === 'active').length
       : undefined,
     bucketCount: loaded('buckets') ? s.buckets.length : undefined,
+    bucketsEverCreated: loaded('bucket counter') ? s.bucketsEverCreated : undefined,
     openChallenges: loaded('challenges') ? s.openChallenges.length : undefined,
   }
 }

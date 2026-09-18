@@ -13,7 +13,7 @@
 
 mod common;
 
-use common::{alice_provider, chain_guard, chain_setup, dev_account};
+use common::{alice_provider, bob_provider, chain_guard, chain_setup, dev_account};
 use storage_client::ProviderSettings;
 
 /// After `chain_setup`, Alice is a registered provider, so `get_provider_info`
@@ -93,6 +93,49 @@ async fn test_get_provider_info_unregistered_returns_none() {
         .expect("get_provider_info should not error");
 
     assert!(info.is_none(), "Bob should not be a registered provider");
+}
+
+/// Bob is never registered, so the monitoring methods return `Ok(None)` — not
+/// a default record, which would read as "reputation 0, capacity full".
+#[tokio::test]
+async fn test_monitoring_unregistered_returns_none() {
+    let _guard = chain_guard().await;
+
+    // Read-only: no `chain_setup`, which would create a bucket and an
+    // agreement on every run only to probe reachability.
+    let Some(bob) = bob_provider().await else {
+        eprintln!("Chain not reachable — skipping test_monitoring_unregistered_returns_none");
+        return;
+    };
+
+    assert!(
+        bob.get_stats()
+            .await
+            .expect("get_stats should not error")
+            .is_none(),
+        "get_stats should be None for an unregistered account"
+    );
+    assert!(
+        bob.get_total_earnings()
+            .await
+            .expect("get_total_earnings should not error")
+            .is_none(),
+        "get_total_earnings should be None for an unregistered account"
+    );
+    assert!(
+        bob.get_capacity_info()
+            .await
+            .expect("get_capacity_info should not error")
+            .is_none(),
+        "get_capacity_info should be None for an unregistered account"
+    );
+    assert!(
+        bob.get_reputation()
+            .await
+            .expect("get_reputation should not error")
+            .is_none(),
+        "get_reputation should be None for an unregistered account"
+    );
 }
 
 /// `list_active_agreements` should succeed and return a (possibly empty) list.

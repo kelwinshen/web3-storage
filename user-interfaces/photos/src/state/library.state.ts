@@ -142,7 +142,7 @@ export async function createLibrary(input: CreateLibraryInput): Promise<void> {
       })
       return
     }
-    const pricePerByte = BigInt(info.price_per_byte ?? 0)
+    const pricePerByte = info.price_per_byte
     const { value } = computePaymentAndValue(pricePerByte, sizeBytes, durationBlocks)
 
     // The terms are bound to the *contract's* mapped account, not the user's.

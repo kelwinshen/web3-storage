@@ -465,7 +465,7 @@ export class S3Client {
             (info.stats.challenges_received_authorized ?? 0) +
             (info.stats.challenges_received_public ?? 0),
           challengesFailed: info.stats.challenges_failed ?? 0,
-          reputation: info.stats.reputation ?? 100,
+          reputation: info.stats.reputation,
           matchScore: match.match_score,
           partialReason: match.partial_reason?.type ?? "",
         };

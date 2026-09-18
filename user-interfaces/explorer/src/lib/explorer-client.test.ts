@@ -127,6 +127,7 @@ describe('summarize', () => {
     // expiresAt 10 is expired
     expect(stats.activeAgreements).toBe(2)
     expect(stats.bucketCount).toBe(0)
+    expect(stats.bucketsEverCreated).toBe(3)
     expect(stats.openChallenges).toBe(0)
   })
 
@@ -136,8 +137,9 @@ describe('summarize', () => {
       agreements: [agreement({ expiresAt: 100 })],
       buckets: [],
       openChallenges: [],
-      bucketsEverCreated: 3,
-      failedSections: ['providers'],
+      // The loader's fallback for a failed NextBucketId read.
+      bucketsEverCreated: 0,
+      failedSections: ['providers', 'bucket counter'],
       fetchedAt: 0,
     }
     const stats = summarize(snapshot, 50)
@@ -145,6 +147,8 @@ describe('summarize', () => {
     expect(stats.providerCount).toBeUndefined()
     expect(stats.totalStake).toBeUndefined()
     expect(stats.totalData).toBeUndefined()
+    // Nor a failed counter as "0 buckets ever created".
+    expect(stats.bucketsEverCreated).toBeUndefined()
     // Sections that did load still report their real value, including 0.
     expect(stats.activeAgreements).toBe(1)
     expect(stats.bucketCount).toBe(0)

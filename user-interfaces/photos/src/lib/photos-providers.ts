@@ -62,14 +62,14 @@ export async function listProviders(api: ParachainApi): Promise<PhotosProvider[]
       account: toSs58(match.account),
       multiaddr,
       url: parseMultiaddrToUrl(multiaddr),
-      pricePerByte: BigInt(info.price_per_byte ?? 0),
-      acceptingPrimary: info.accepting_primary ?? false,
+      pricePerByte: info.price_per_byte,
+      acceptingPrimary: info.accepting_primary,
       availableCapacity,
       // `max_capacity === 0` means "unlimited" in the pallet.
       maxCapacity,
-      minDuration: info.min_duration ?? 0,
-      maxDuration: info.max_duration ?? 0,
-      reputation: info.stats.reputation ?? 100,
+      minDuration: info.min_duration,
+      maxDuration: info.max_duration,
+      reputation: info.stats.reputation,
     }
   })
 

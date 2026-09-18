@@ -66,7 +66,13 @@ export function Summary() {
           label="Buckets"
           value={show(stats?.bucketCount, (v) => v.toLocaleString())}
           testId="summary-stat-buckets"
-          sub={snapshot ? `${snapshot.bucketsEverCreated.toLocaleString()} ever created` : undefined}
+          sub={
+            // No sub-line when the counter failed: the banner above already
+            // names the section, and its fallback 0 is not a count.
+            stats?.bucketsEverCreated !== undefined
+              ? `${stats.bucketsEverCreated.toLocaleString()} ever created`
+              : undefined
+          }
         />
         <StatTile
           label="Open challenges"
