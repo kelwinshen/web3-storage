@@ -92,7 +92,8 @@ export default function ProviderPickerPanel({
               {providers.map((p) => {
                 // `undefined` is unlimited — nothing to meter.
                 const free = p.availableCapacity;
-                const capacityPct =
+                // Percent free, like the drive-ui picker.
+                const availablePct =
                   free !== undefined && p.maxCapacity > 0n
                     ? Number((free * 100n) / p.maxCapacity)
                     : 0;
@@ -116,7 +117,7 @@ export default function ProviderPickerPanel({
                         <p className="text-xs text-muted-foreground">Unlimited</p>
                       ) : (
                         <div className="space-y-1">
-                          <Progress value={capacityPct} className="h-1.5" />
+                          <Progress value={availablePct} className="h-1.5" />
                           <p className="text-xs text-muted-foreground">
                             {formatBytes(Number(free))} / {formatBytes(Number(p.maxCapacity))}
                           </p>

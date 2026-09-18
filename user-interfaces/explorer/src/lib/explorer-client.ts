@@ -119,6 +119,13 @@ export interface ChallengeRow {
   authorized: boolean
 }
 
+/**
+ * The independently loaded parts of a snapshot. One name per `safe()` call in
+ * `loadNetworkSnapshotAt`; `summarize` and the pages test against it, so a
+ * rename is a compile error, not a stat that silently reports 0 again.
+ */
+export type Section = 'providers' | 'agreements' | 'buckets' | 'challenges' | 'bucket counter'
+
 export interface NetworkSnapshot {
   providers: ProviderRow[]
   agreements: AgreementRow[]
@@ -127,7 +134,7 @@ export interface NetworkSnapshot {
   /** NextBucketId — buckets ever created (deleted ones included). */
   bucketsEverCreated: number
   /** Sections whose query failed (e.g. storage item missing on an older runtime). */
-  failedSections: string[]
+  failedSections: Section[]
   fetchedAt: number
 }
 
@@ -231,7 +238,7 @@ export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
 
 async function loadNetworkSnapshotAt(at: string): Promise<NetworkSnapshot> {
   const api = requireApi()
-  const failedSections: string[] = []
+  const failedSections: Section[] = []
   // One block for every read; aborted as a whole once any read finds the
   // block unpinned, so the discarded snapshot stops loading.
   const abort = new AbortController()
@@ -239,7 +246,7 @@ async function loadNetworkSnapshotAt(at: string): Promise<NetworkSnapshot> {
 
   // A query failing (most likely a storage item missing on an older live
   // runtime) degrades its own section instead of blanking the whole app.
-  async function safe<T>(section: string, fallback: T, run: () => Promise<T>): Promise<T> {
+  async function safe<T>(section: Section, fallback: T, run: () => Promise<T>): Promise<T> {
     try {
       return await run()
     } catch (e) {
@@ -363,7 +370,7 @@ export interface SummaryStats {
 }
 
 export function summarize(s: NetworkSnapshot, anchorBlock: number): SummaryStats {
-  const loaded = (section: string) => !s.failedSections.includes(section)
+  const loaded = (section: Section) => !s.failedSections.includes(section)
   const providers = loaded('providers')
 
   return {

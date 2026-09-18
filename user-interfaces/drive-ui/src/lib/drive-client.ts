@@ -63,7 +63,7 @@ export interface CheckpointInfo {
 
 /**
  * A registered provider as surfaced by the provider picker. UI-side discovery
- * type (raw `StorageProvider.Providers` sweep) — stays in the UI, not the SDK.
+ * type (the `providers` runtime API) — stays in the UI, not the SDK.
  */
 export interface AvailableProvider {
   account: string;
@@ -100,6 +100,15 @@ export interface MatchingProviders extends AvailableProvider {
   /** 0-100, computed on-chain by `ProviderStats::reputation`. */
   reputation: number;
 }
+
+/**
+ * `StorageProviderApi.providers` limit for the full list. One page for
+ * everything: paging over the hash-ordered `Providers` map skips or repeats a
+ * provider when a registration or deregistration occurs between two pages,
+ * and this client has no block handle to pin the pages to. The storage scan
+ * this replaced read the whole map in one call too.
+ */
+const ALL_PROVIDERS = 0xffff_ffff;
 
 /** Most free capacity first; unlimited (`undefined`) sorts ahead of metered. */
 function byFreeCapacityDesc(a: AvailableProvider, b: AvailableProvider): number {
@@ -259,45 +268,29 @@ export class DriveClient {
   }
 
   /**
-   * Walk `StorageProvider.Providers` storage and return all registered
-   * providers, sorted by free capacity descending. Used by the provider
-   * picker to surface candidates before negotiation. UI-side discovery — the
-   * SDK's `discoverAcceptingProvider` picks one; this lists them all.
+   * Every registered provider via the `providers` runtime API, sorted by free
+   * capacity descending. Used by the provider picker to surface candidates
+   * before negotiation. UI-side discovery — the SDK's
+   * `discoverAcceptingProvider` picks one; this lists them all.
    */
   async listAvailableProviders(): Promise<AvailableProvider[]> {
     const api = this.requireApi();
-    const entries = await api.query.StorageProvider.Providers.getEntries();
-    const providers: AvailableProvider[] = [];
+    const page = await api.apis.StorageProviderApi.providers(0, ALL_PROVIDERS);
 
-    for (const entry of entries) {
-      const provider = entry.value;
-      const account = entry.keyArgs[0] as string;
-      const settings = provider.settings;
-
-      const multiaddrStr = new TextDecoder().decode(provider.multiaddr);
-      const maxCapacity = BigInt(settings.max_capacity ?? 0);
-      const committedBytes = BigInt(provider.committed_bytes ?? 0);
-      // Storage has no computed capacity; `max_capacity == 0` is unlimited.
-      const availableCapacity =
-        maxCapacity === 0n
-          ? undefined
-          : maxCapacity > committedBytes
-            ? maxCapacity - committedBytes
-            : 0n;
-
-      providers.push({
-        account,
-        multiaddr: multiaddrStr,
-        stake: BigInt(provider.stake ?? 0),
-        availableCapacity,
-        maxCapacity,
-        pricePerByte: BigInt(settings.price_per_byte ?? 0),
-        minDuration: settings.min_duration ?? 0,
-        maxDuration: settings.max_duration ?? 0,
-        acceptingPrimary: settings.accepting_primary ?? false,
-        agreementsTotal: (provider.stats as { agreements_total?: number })?.agreements_total ?? 0,
-      });
-    }
+    const providers: AvailableProvider[] = page.map(([account, info]) => ({
+      account,
+      multiaddr: new TextDecoder().decode(info.multiaddr),
+      stake: info.stake,
+      // The chain already computed this; `null` is its "unlimited".
+      availableCapacity:
+        info.available_capacity == null ? undefined : BigInt(info.available_capacity),
+      maxCapacity: BigInt(info.max_capacity),
+      pricePerByte: info.price_per_byte,
+      minDuration: info.min_duration,
+      maxDuration: info.max_duration,
+      acceptingPrimary: info.accepting_primary,
+      agreementsTotal: info.stats.agreements_total,
+    }));
 
     providers.sort(byFreeCapacityDesc);
 

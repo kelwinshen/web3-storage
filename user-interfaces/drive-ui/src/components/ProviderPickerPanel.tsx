@@ -133,9 +133,11 @@ export default function ProviderPickerPanel({
                 const rowDisabled = reason !== null;
                 // `undefined` is unlimited — nothing to meter.
                 const free = p.availableCapacity;
-                const utilization =
+                // Percent free: the column is "Available", and the s3-ui
+                // picker meters the same way.
+                const availablePct =
                   free !== undefined && p.maxCapacity > 0n
-                    ? Number(((p.maxCapacity - free) * 100n) / p.maxCapacity)
+                    ? Number((free * 100n) / p.maxCapacity)
                     : 0;
                 return (
                   <tr
@@ -166,7 +168,7 @@ export default function ProviderPickerPanel({
                           <div className="h-1 w-16 rounded-full bg-secondary">
                             <div
                               className="h-full rounded-full bg-primary transition-all"
-                              style={{ width: `${utilization}%` }}
+                              style={{ width: `${availablePct}%` }}
                             />
                           </div>
                         </div>

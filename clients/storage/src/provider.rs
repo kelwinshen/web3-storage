@@ -563,7 +563,6 @@ impl ProviderClient {
             committed_bytes: info.committed_bytes,
             available_bytes: info.available_capacity,
             stake: info.stake,
-            required_stake: 0,
         }))
     }
 
@@ -636,6 +635,9 @@ pub struct CapacityInfo {
     pub committed_bytes: u64,
     /// Free capacity as the chain reports it; `None` = unlimited.
     pub available_bytes: Option<u64>,
+    /// Staked balance. The pallet requires `MinStakePerByte` times the bytes
+    /// committed by each new agreement, and times `max_capacity` when
+    /// `update_provider_settings` sets a non-zero one. It exposes no
+    /// required-stake figure, so none is reported here.
     pub stake: u128,
-    pub required_stake: u128,
 }
