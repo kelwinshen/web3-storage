@@ -59,7 +59,7 @@ pub mod pallet {
     pub use frame_system::pallet_prelude::BlockNumberFor as SystemBlockNumberFor;
     use frame_system::pallet_prelude::*;
     use sp_core::H256;
-    use sp_runtime::traits::{Bounded, CheckedAdd, Saturating, Zero};
+    use sp_runtime::traits::{Bounded, CheckedAdd, SaturatedConversion, Saturating, Zero};
     #[cfg(feature = "try-runtime")]
     use sp_runtime::TryRuntimeError;
     use storage_primitives::{
@@ -638,6 +638,24 @@ pub mod pallet {
                 return 100;
             }
             ((defended as u64 * 100) / total).min(100) as u8
+        }
+    }
+
+    impl<T: Config> From<&ProviderStats<T>> for crate::runtime_api::ProviderStatsInfo {
+        fn from(stats: &ProviderStats<T>) -> Self {
+            Self {
+                registered_at: stats.registered_at.saturated_into::<u32>(),
+                agreements_total: stats.agreements_total,
+                agreements_extended: stats.agreements_extended,
+                agreements_not_extended: stats.agreements_not_extended,
+                agreements_burned: stats.agreements_burned,
+                total_bytes_committed: stats.total_bytes_committed,
+                challenges_received_authorized: stats.challenges_received_authorized,
+                challenges_received_public: stats.challenges_received_public,
+                challenges_failed: stats.challenges_failed,
+                lifetime_revenue: stats.lifetime_revenue.saturated_into::<u128>(),
+                reputation: stats.reputation(),
+            }
         }
     }
 

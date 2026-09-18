@@ -101,19 +101,7 @@ impl<T: Config> Pallet<T> {
                 max_capacity,
                 available_capacity,
                 deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
-                stats: crate::runtime_api::ProviderStatsInfo {
-                    registered_at: info.stats.registered_at.saturated_into::<u32>(),
-                    agreements_total: info.stats.agreements_total,
-                    agreements_extended: info.stats.agreements_extended,
-                    agreements_not_extended: info.stats.agreements_not_extended,
-                    agreements_burned: info.stats.agreements_burned,
-                    total_bytes_committed: info.stats.total_bytes_committed,
-                    challenges_received_authorized: info.stats.challenges_received_authorized,
-                    challenges_received_public: info.stats.challenges_received_public,
-                    challenges_failed: info.stats.challenges_failed,
-                    lifetime_revenue: info.stats.lifetime_revenue.saturated_into::<u128>(),
-                    reputation: info.stats.reputation(),
-                },
+                stats: crate::runtime_api::ProviderStatsInfo::from(&info.stats),
             };
 
             results.push(MatchedProvider {
@@ -197,21 +185,7 @@ impl<T: Config> Pallet<T> {
                         max_capacity,
                         available_capacity,
                         deregister_at: info.deregister_at.map(|b| b.saturated_into::<u32>()),
-                        stats: crate::runtime_api::ProviderStatsInfo {
-                            registered_at: info.stats.registered_at.saturated_into::<u32>(),
-                            agreements_total: info.stats.agreements_total,
-                            agreements_extended: info.stats.agreements_extended,
-                            agreements_not_extended: info.stats.agreements_not_extended,
-                            agreements_burned: info.stats.agreements_burned,
-                            total_bytes_committed: info.stats.total_bytes_committed,
-                            challenges_received_authorized: info
-                                .stats
-                                .challenges_received_authorized,
-                            challenges_received_public: info.stats.challenges_received_public,
-                            challenges_failed: info.stats.challenges_failed,
-                            lifetime_revenue: info.stats.lifetime_revenue.saturated_into::<u128>(),
-                            reputation: info.stats.reputation(),
-                        },
+                        stats: crate::runtime_api::ProviderStatsInfo::from(&info.stats),
                     },
                 )
             })
