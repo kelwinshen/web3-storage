@@ -190,6 +190,32 @@ export async function submitChallenge(
   }
 }
 
+/**
+ * Withdraw one of this account's open challenges. The chain refunds the
+ * deposit in full. This function stops the watcher and poll timer for it
+ * and refreshes the lists.
+ */
+export async function cancelChallenge(
+  bucketId: bigint,
+  challengeId: { deadline: number; index: number },
+  provider: string,
+): Promise<void> {
+  const client = getS3Client();
+  await client.cancelChallenge(challengeId);
+
+  const key = watchKey(challengeId.deadline, provider);
+  stopPolling(key);
+  stopEventWatch(key);
+  const current = activeChallenge$.getValue();
+  if (current && current.challengeId.deadline === challengeId.deadline
+      && current.challengeId.index === challengeId.index) {
+    activeChallenge$.next(null);
+    challengeStatus$.next("idle");
+  }
+  refreshOpenChallenges(bucketId).catch(() => {});
+  refreshChallengeHistory(bucketId).catch(() => {});
+}
+
 function startEventWatch(
   challengeId: { deadline: number; index: number },
   provider: string,

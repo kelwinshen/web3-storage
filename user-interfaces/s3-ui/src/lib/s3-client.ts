@@ -541,6 +541,20 @@ export class S3Client {
     };
   }
 
+  /**
+   * Withdraw a challenge this account opened, before the provider responds
+   * and no later than the deadline. Finalized mode so the open-challenges
+   * refresh that follows does not return it.
+   */
+  async cancelChallenge(challengeId: { deadline: number; index: number }): Promise<void> {
+    const api = this.requireApi();
+    await submitTx(
+      api.tx.StorageProvider.cancel_challenge({ challenge_id: challengeId }),
+      this.requireOwner().signer,
+      { label: "cancel_challenge", mode: "finalized" },
+    );
+  }
+
   async getLeafChunkCount(bucketId: bigint, leafIndex: bigint): Promise<number> {
     const providerUrl = await this.getProviderUrl(bucketId);
     const params = new URLSearchParams({
