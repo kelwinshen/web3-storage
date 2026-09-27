@@ -6,15 +6,23 @@
  *
  * Status lifecycle (for the current submission):
  *   idle → submitting → submitted → defended | slashed → idle
+ *   A ChallengeCancelled event resets to idle with no outcome modal and shows
+ *   up in the history as "cancelled". This UI has no cancel action yet; the
+ *   event arrives when the same account cancels from another client.
  *
- * After submission, subscribes to ChallengeDefended / ChallengeSlashed events
- * to detect the outcome with full details. Falls back to polling if the event
- * subscription misses the result (e.g. reconnect).
+ * After submission, subscribes to ChallengeDefended / ChallengeSlashed /
+ * ChallengeCancelled events to detect the outcome with full details. Falls
+ * back to polling if the event subscription misses the result (e.g. reconnect).
  */
 
 import { BehaviorSubject } from "rxjs";
 import { bind } from "@react-rxjs/core";
-import type { OpenChallenge, ChallengeDefenseResult, ChallengeSlashResult } from "@/lib/s3-client";
+import type {
+  OpenChallenge,
+  ChallengeDefenseResult,
+  ChallengeSlashResult,
+  ChallengeCancelResult,
+} from "@/lib/s3-client";
 import { getS3Client } from "@/state/s3.state";
 import { getClient, getApi } from "@/state/chain.state";
 
@@ -48,7 +56,7 @@ export interface ChallengeHistoryEntry {
   challengeId: { deadline: number; index: number };
   bucketId: string;
   provider: string;
-  status: "defended" | "slashed";
+  status: "defended" | "slashed" | "cancelled";
   blockNumber: number;
   blockHash: string;
   defenseDetails?: ChallengeDefenseDetails;
@@ -234,7 +242,26 @@ function startEventWatch(
     refreshChallengeHistory(bucketId).catch(() => {});
   };
 
-  const unsub = client.watchChallengeOutcome(challengeId.deadline, provider, onDefended, onSlashed);
+  const onCancelled = (_result: ChallengeCancelResult): void => {
+    stopPolling(key);
+    stopEventWatch(key);
+    const current = activeChallenge$.getValue();
+    if (current && current.challengeId.deadline === challengeId.deadline
+        && current.challengeId.index === challengeId.index) {
+      activeChallenge$.next(null);
+      challengeStatus$.next("idle");
+    }
+    refreshOpenChallenges(bucketId).catch(() => {});
+    refreshChallengeHistory(bucketId).catch(() => {});
+  };
+
+  const unsub = client.watchChallengeOutcome(
+    challengeId.deadline,
+    provider,
+    onDefended,
+    onSlashed,
+    onCancelled,
+  );
   eventWatchers.set(key, unsub);
 }
 
@@ -257,15 +284,32 @@ function startFallbackPoll(
         if (!stillActive) {
           stopEventWatch(key);
           stopPolling(key);
-          // Update active challenge UI if this is the current one
+          refreshOpenChallenges(bucketId).catch(() => {});
+          // The event watch missed the outcome. Recover it from the chain
+          // scan, which covers defended, slashed, and cancelled.
+          await refreshChallengeHistory(bucketId).catch(() => {});
+          const entry = challengeHistory$.getValue().find(
+            (e) => e.challengeId.deadline === challengeId.deadline
+              && e.challengeId.index === challengeId.index,
+          );
           const current = activeChallenge$.getValue();
           if (current && current.challengeId.deadline === challengeId.deadline
               && current.challengeId.index === challengeId.index) {
-            setStatus("defended");
-            showOutcomeModal$.next(true);
+            if (entry?.status === "cancelled") {
+              activeChallenge$.next(null);
+              challengeStatus$.next("idle");
+            } else if (entry?.status === "slashed") {
+              activeChallenge$.next({ ...current, status: "slashed", slashDetails: entry.slashDetails });
+              challengeStatus$.next("slashed");
+              showOutcomeModal$.next(true);
+            } else {
+              // Defended, or the scan could not find the entry: the dialog
+              // already explains when details are missing.
+              activeChallenge$.next({ ...current, status: "defended", defenseDetails: entry?.defenseDetails });
+              challengeStatus$.next("defended");
+              showOutcomeModal$.next(true);
+            }
           }
-          refreshOpenChallenges(bucketId).catch(() => {});
-          refreshChallengeHistory(bucketId).catch(() => {});
           return true; // resolved
         }
       } catch {
@@ -311,7 +355,7 @@ interface StoredHistoryEntry {
   challengeId: { deadline: number; index: number };
   bucketId: string;
   provider: string;
-  status: "defended" | "slashed";
+  status: "defended" | "slashed" | "cancelled";
   blockNumber: number;
   blockHash: string;
   defenseDetails?: {
@@ -450,6 +494,7 @@ export async function refreshChallengeHistory(bucketId: bigint | null): Promise<
     type EventWithBlock = { payload: any; blockNumber: number; blockHash: string }; // eslint-disable-line @typescript-eslint/no-explicit-any
     const allDefended: EventWithBlock[] = [];
     const allSlashed: EventWithBlock[] = [];
+    const allCancelled: EventWithBlock[] = [];
 
     for (let b = 0; b < blockHashes.length; b += SCAN_BATCH_SIZE) {
       const batch = blockHashes.slice(b, b + SCAN_BATCH_SIZE);
@@ -457,18 +502,19 @@ export async function refreshChallengeHistory(bucketId: bigint | null): Promise<
       const results = await Promise.allSettled(
         batch.map(async (hash, i) => {
           const num = blockNumbers[batchStart + i]!;
-          const [created, defended, slashed] = await Promise.all([
+          const [created, defended, slashed, cancelled] = await Promise.all([
             api.event.StorageProvider.ChallengeCreated.get(hash),
             api.event.StorageProvider.ChallengeDefended.get(hash),
             api.event.StorageProvider.ChallengeSlashed.get(hash),
+            api.event.StorageProvider.ChallengeCancelled.get(hash),
           ]);
-          return { hash, number: num, created, defended, slashed };
+          return { hash, number: num, created, defended, slashed, cancelled };
         }),
       );
 
       for (const result of results) {
         if (result.status !== "fulfilled") continue; // skip pruned blocks
-        const { hash, number, created, defended, slashed } = result.value;
+        const { hash, number, created, defended, slashed, cancelled } = result.value;
         for (const ev of created) {
           const p = ev.payload;
           if (BigInt(p.bucket_id) !== bucketId) continue;
@@ -484,6 +530,9 @@ export async function refreshChallengeHistory(bucketId: bigint | null): Promise<
         }
         for (const ev of slashed) {
           allSlashed.push({ payload: ev.payload, blockNumber: number, blockHash: hash });
+        }
+        for (const ev of cancelled) {
+          allCancelled.push({ payload: ev.payload, blockNumber: number, blockHash: hash });
         }
       }
     }
@@ -529,6 +578,20 @@ export async function refreshChallengeHistory(bucketId: bigint | null): Promise<
           blockNumber,
           blockHash,
         },
+      });
+    }
+
+    for (const { payload: p, blockNumber, blockHash } of allCancelled) {
+      const key = `${p.challenge_id.deadline}:${p.challenge_id.index}`;
+      const info = createdMap.get(key);
+      if (!info) continue;
+      scanned.push({
+        challengeId: info.challengeId,
+        bucketId: info.bucketId.toString(),
+        provider: info.provider,
+        status: "cancelled",
+        blockNumber,
+        blockHash,
       });
     }
 
