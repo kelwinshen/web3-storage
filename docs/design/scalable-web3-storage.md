@@ -4,13 +4,14 @@
 | --- | --- |
 | **Authors** | eskimor |
 | **Status** | Draft |
-| **Version** | 2.4 |
+| **Version** | 2.5 |
 | **Related** | [Implementation Details](./scalable-web3-storage-implementation.md), [Proof-of-DOT Infrastructure Strategy](https://docs.google.com/document/d/1fNv75FCEBFkFoG__s_Xu10UZd0QsGIE9AKnrouzz-U8/) |
 
 ## Version History
 
 | Version | Changes |
 |---------|---------|
+| 2.5 | Challenge resolution and slashing are lazy: an unanswered challenge is slashed by the permissionless `resolve_expired_challenge` call (no per-block sweep). A timeout is the only slash reason. **Read**: "The Challenge Game", Resolution; `resolve_expired_challenge` in [Implementation Details](./scalable-web3-storage-implementation.md). |
 | 2.4 | Bucket creation and provider assignment are separate on-chain operations: `create_bucket`, `create_bucket_with_primary`, `add_primary_provider`, `add_replica_provider`. Provider-signed quotes name the bucket they are for. A bucket remains after its last agreement ends and can get new providers later; the client moves the data when a provider is added. **Read**: "Buckets: Stable Identity in a Fluid Provider Market"; "Two Classes of Providers"; "Provider Lifecycle in Bucket" in [Implementation Details](./scalable-web3-storage-implementation.md) for the four calls. |
 | 2.3 | Private buckets clarified (visibility flag, Reader role, primary challenges gated to members + primary-agreement owners, tier-split challenge stats). **Read**: new "Bucket Visibility & Access" section; "The Challenge Game". |
 | 2.2 | Challenge cost model reworked and clarified: a valid response never touches the provider's stake. The challenger's deposit covers the on-chain response cost; authorized challengers (bucket members + agreement owners) get a split where the provider bears a fraction (challenger's share floored at 50%, as leverage—not cheap recovery), while the general public pays in full (anti-DoS, since a provider can't serve everyone equally). Stake is slashed only on a missing/invalid response. |
@@ -613,14 +614,17 @@ below):
      from its stake (normal tx fee mechanism)
    - Challenger can cancel anytime before the response and no later than the
      deadline (deposit returned, pays only the cancel tx fee). Past the
-     deadline the outcome is settled by the sweep, even if it has not run yet
+     deadline the provider can only be slashed, with `resolve_expired_challenge`.
 
 3. Resolution
    - Valid proof: Challenge rejected. The provider's response fee is reimbursed
      from the challenger's deposit (in full, or only a fraction—see below).
      Any excess deposit is returned to the challenger.
    - Cancelled by challenger: Deposit returned (challenger paid only tx fees)
-   - Invalid/no proof: Provider's full stake slashed; challenger made whole
+   - Invalid proof: Response rejected (provider pays the tx fee); the
+     challenge stays open until the deadline
+   - No proof by the deadline: anyone submits `resolve_expired_challenge`
+     (free on success); provider's full stake slashed; challenger made whole
      from the slash (deposit and tx fees refunded—no reward beyond costs)
 ```
 
@@ -678,12 +682,12 @@ would make griefing cheap). Faster responses cost the provider less:
 | Blocks 96+ | 50% | 50% |
 
 The general public is not on this table: the challenger always pays 100%. (The
-failure case—no or invalid response—is separate: the provider's full stake is
-slashed and the challenger is made whole from it, per Resolution above.)
+failure case—no response by the deadline—is separate: the provider's full stake
+is slashed and the challenger is made whole from it, per Resolution above.)
 
 The net effect: a provider's *monetary* challenge exposure is bounded to the
 counterparties it chose to accept—strangers can be a nuisance but can't drain
-it—while a missing or invalid response always costs the full stake. Vetting whom
+it—while a missing response always costs the full stake. Vetting whom
 it signs agreements with is how a provider controls its risk.
 
 ### The Burn Option
@@ -1252,7 +1256,7 @@ This is exactly why the general public gets no cost split—it closes the floodi
 
 2. **Only counterparties get the split**: A provider is made to bear a fraction of the cost only for its own members or agreement owners—accounts it *chose* to deal with (it accepted their agreement) or that the admin added.
 
-3. **Challenge cancellation**: Any challenger can cancel before the response and no later than the deadline, paying only the tx fee. If the provider serves off-chain after a challenge is initiated, the challenger cancels and the provider never even responds on-chain. Cancelled challenges leave no trace in the provider's stats (see next point). The deadline bound matters only when the sweep is behind: without it, a provider that missed its deadline could ask the challenger to cancel and escape a slash it already earned.
+3. **Challenge cancellation**: Any challenger can cancel before the response and no later than the deadline, paying only the tx fee. If the provider serves off-chain after a challenge is initiated, the challenger cancels and the provider never even responds on-chain. Cancelled challenges leave no trace in the provider's stats (see next point). The deadline bound matters because resolution is lazy: an expired challenge stays stored until someone calls `resolve_expired_challenge`, and without the bound a provider that missed its deadline could ask the challenger to cancel and avoid the slash its missed deadline makes due.
 
 4. **Reputation**: Challenge stats count only *responded-to* challenges (at resolution, never creation) and are split by tier—`challenges_received_authorized` vs `challenges_received_public`—so clients can weigh the two as they see fit. The challenges-*failed* count (the one that actually signals data loss) is unaffected, since the provider defends every one.
 

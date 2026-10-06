@@ -17,9 +17,9 @@
 //!    and wrong-account events.
 //!
 //! 3. **Resilience.** [`ChainStateCoordinator::start`] drives a reconnect loop.
-//!    Pointed at an unreachable chain it must stay up, never panic, leave
-//!    [`ChainState`] at its defaults (so `/negotiate` keeps returning 503), and
-//!    shut down cleanly when stopped.
+//!    With a [`ChainFollower`] whose `connect()` always fails, it must stay
+//!    up, never panic, leave [`ChainState`] at its defaults (so `/negotiate`
+//!    keeps returning 503), and shut down cleanly when stopped.
 //!
 //! Membership invalidation is covered separately, in
 //! `tests/coordinators/membership.rs`: the coordinator only broadcasts
@@ -27,14 +27,13 @@
 //! membership cache pulls from that feed itself.
 
 use async_trait::async_trait;
-use provider_chain::chain_connection::{ChainHandle, ChainTransport};
 use provider_coordinator::{
     is_relevant_provider_event, refresh_if_relevant_event, refresh_provider_state, sync_constants,
-    ChainState, ChainStateChainClient, ChainStateCoordinator, Error, NonceCounter, PalletConstants,
-    ProviderLifecycleEvent,
+    ChainConnection, ChainFollower, ChainState, ChainStateChainClient, ChainStateCoordinator,
+    NonceCounter, PalletConstants, ProviderLifecycleEvent,
 };
 use provider_storage::{temp_rocksdb, NonceStore};
-use provider_types::{ProviderInfo, ProviderSettings, ProviderStats};
+use provider_types::{ChainClientError, ProviderInfo, ProviderSettings, ProviderStats};
 use sp_runtime::AccountId32;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -51,24 +50,30 @@ fn counter_for(cs: &ChainState) -> Arc<NonceCounter> {
     Arc::new(NonceCounter::with_store(1, cs.nonce_store.clone()))
 }
 
-/// Coordinator against the unreachable chain, with freshly-made (and
-/// immediately caller-dropped) channel counterparts: `send` failures are
+/// [`ChainFollower`] whose `connect()` always fails, like an unreachable chain.
+struct AlwaysFailFollower;
+
+#[async_trait]
+impl ChainFollower for AlwaysFailFollower {
+    async fn connect(&self) -> Result<ChainConnection, ChainClientError> {
+        Err(ChainClientError::query(
+            "chain connection",
+            "mock connect failure",
+        ))
+    }
+}
+
+/// Coordinator whose connect attempts always fail, with a freshly-made (and
+/// immediately caller-dropped) event channel counterpart: `send` failures are
 /// ignored by the coordinator, so this exercises the same loop as production.
 fn unreachable_coordinator(chain_state: Arc<ChainState>) -> ChainStateCoordinator {
     ChainStateCoordinator::new(
-        ChainTransport::Rpc {
-            url: UNREACHABLE_CHAIN.to_string(),
-        },
+        Arc::new(AlwaysFailFollower),
         provider_account(),
         chain_state,
-        tokio::sync::watch::channel::<Option<ChainHandle>>(None).0,
         tokio::sync::broadcast::channel(16).0,
     )
 }
-
-/// A WS URL that refuses immediately: port 1 on loopback is never listening, so
-/// every connect attempt fails fast and the coordinator loops on the error arm.
-const UNREACHABLE_CHAIN: &str = "ws://127.0.0.1:1";
 
 /// `[1u8; 32]` provider account — the coordinator only uses it to identify
 /// relevant events, which never fire here since the chain is unreachable.
@@ -195,7 +200,7 @@ async fn coordinator_releases_shared_state_after_stop() {
 
 /// Canned [`ChainStateChainClient`] for driving the synchronisation logic
 /// without a chain. Each read is either `Ok(value)` or, when its `*_err` flag is
-/// set, an `Error` — so every branch of `sync_constants` /
+/// set, a [`ChainClientError`] — so every branch of `sync_constants` /
 /// `refresh_provider_state` is reachable.
 #[derive(Default)]
 struct MockChainClient {
@@ -209,23 +214,29 @@ struct MockChainClient {
 
 #[async_trait]
 impl ChainStateChainClient for MockChainClient {
-    async fn get_provider_info(&self, _who: &AccountId32) -> Result<Option<ProviderInfo>, Error> {
+    async fn get_provider_info(
+        &self,
+        _who: &AccountId32,
+    ) -> Result<Option<ProviderInfo>, ChainClientError> {
         if self.info_err {
-            return Err(Error::Internal("mock get_provider_info failure".into()));
+            return Err(ChainClientError::query("Providers", "mock failure"));
         }
         Ok(self.info.clone())
     }
 
-    async fn fetch_replay_hsn(&self, _who: &AccountId32) -> Result<Option<u64>, Error> {
+    async fn fetch_replay_hsn(&self, _who: &AccountId32) -> Result<Option<u64>, ChainClientError> {
         if self.hsn_err {
-            return Err(Error::Internal("mock fetch_replay_hsn failure".into()));
+            return Err(ChainClientError::query(
+                "ProviderReplayStates",
+                "mock failure",
+            ));
         }
         Ok(self.hsn)
     }
 
-    async fn fetch_request_timeout(&self) -> Result<Option<u32>, Error> {
+    async fn fetch_request_timeout(&self) -> Result<Option<u32>, ChainClientError> {
         if self.request_timeout_err {
-            return Err(Error::Internal("mock fetch_request_timeout failure".into()));
+            return Err(ChainClientError::query("RequestTimeout", "mock failure"));
         }
         Ok(self.request_timeout)
     }
