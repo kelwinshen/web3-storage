@@ -311,7 +311,10 @@ function startEventWatch(
     refreshOpenChallenges(bucketId).catch(() => {});
   };
 
-  const onCancelled = (_result: ChallengeCancelResult): void => {
+  const onCancelled = (result: ChallengeCancelResult): void => {
+    // The watch matches on deadline and provider only. Ignore a cancel of
+    // another challenge that shares both.
+    if (result.challengeId.index !== challengeId.index) return;
     stopPolling(key);
     stopEventWatch(key);
     const current = activeChallenge$.getValue();

@@ -190,7 +190,7 @@ async function main() {
       const result = await cancelChallenge(api, client, challengeId);
       const events = api.event.StorageProvider.ChallengeCancelled.filter(result.events as never);
       assert.strictEqual(events.length, 1, "Expected ChallengeCancelled event");
-      assert.ok(events[0].payload.deposit > 0n, "the deposit is released in full");
+      assert.ok(events[0].payload.deposit > 0n, "the released deposit is non-zero");
     },
   });
 
