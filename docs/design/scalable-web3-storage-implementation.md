@@ -145,7 +145,7 @@ it stay valid.
 
 **Snapshot liability**: Providers remain liable for snapshots they signed until those snapshots are superseded by a new checkpoint that doesn't include them, or until the bucket's canonical depth grows past the data they signed for.
 
-A checkpoint voids any prior existing *shorter* off-chain commitments. Primaries are no longer liable for them, including primaries that did not sign the checkpoint: the client decides how many signatures to collect before it submits the checkpoint.
+A checkpoint voids any prior existing *shorter* off-chain commitments. A primary challenged on an off-chain commitment to a different root answers with `Superseded` for the leaves the checkpoint covers, whether or not it signed the checkpoint: the client decides how many signatures to collect before it submits the checkpoint.
 
 ### Multi-Provider Coordination (Primary Providers)
 
@@ -693,11 +693,6 @@ pub struct Challenge<T: Config> {
     /// membership/agreement changes between creation and response cannot alter
     /// the fee split applied in `respond_to_challenge`.
     pub authorized: bool,
-    /// Whether the challenged provider held a replica agreement at challenge
-    /// creation. Set in `create_challenge` from the provider's agreement
-    /// role and snapshotted like `authorized`. A replica cannot defend with
-    /// `Superseded`.
-    pub replica: bool,
 }
 
 /// Number of unresolved challenges currently outstanding against a
@@ -713,7 +708,8 @@ pub type PendingChallenges<T: Config> =
 /// Number of unresolved challenges outstanding against a specific
 /// `(bucket, provider)` pair. Maintained in lockstep with
 /// `PendingChallenges` and gates that bucket's agreement teardown
-/// (`end_agreement`, `claim_expired_agreement`, `cleanup_bucket_internal`).
+/// (`end_agreement`, `claim_expired_agreement`, `cleanup_bucket_internal`,
+/// `remove_slashed`).
 #[pallet::storage]
 pub type PendingChallengesByBucket<T: Config> = StorageDoubleMap<
     _,
@@ -1598,6 +1594,9 @@ impl<T: Config> Pallet<T> {
     /// The agreement's remaining payment is handled as follows:
     /// - If slashed while agreement was active: remaining payment returned to owner
     ///   (provider already punished via stake slash, client shouldn't also lose payment)
+    ///
+    /// Fails with `AgreementHasPendingChallenge` while a challenge against
+    /// this provider on this bucket is open.
     #[pallet::weight(...)]
     pub fn remove_slashed(
         origin: OriginFor<T>,
@@ -1659,8 +1658,9 @@ impl<T: Config> Pallet<T> {
     // - Uses the replica's on-chain sync confirmation (last_synced_root)
     // - No signature needed - chain already has their commitment
     // - Replicas are liable for roots they've confirmed synced to
-    // - `Superseded` is not a defense: there is no call to re-challenge a
-    //   replica on the newer snapshot, so it would end the replica's liability
+    // - `Superseded` is not a defense for a replica: it covers MMR forks, and
+    //   a replica syncs only to snapshots. A challenged replica answers with
+    //   `Proof` or `Deleted`
     //
     // For hot buckets, challenge_checkpoint may fail due to race conditions,
     // but this is acceptable: active writers have signatures and can use
@@ -1901,9 +1901,7 @@ pub enum ChallengeResponse<T: Config> {
         admin_signature: Signature,
     },
     /// Challenged state has been superseded by a larger canonical checkpoint.
-    /// Primary providers only. It covers MMR forks, and a replica has none: it
-    /// only syncs to snapshots, which are canonical, so it can always answer
-    /// with `Proof` (or `Deleted`).
+    /// Primary providers only; a replica gets `InvalidSupersededClaim`.
     /// Valid when: canonical.mmr_root != challenged mmr_root AND
     /// canonical.start_seq <= challenged_seq < canonical.start_seq + canonical.leaf_count
     /// (The leaf exists in canonical - challenger should challenge the snapshot instead)
@@ -2617,8 +2615,12 @@ fn verify_challenge_response(
             // data is live, only a Proof defends it) or when challenged_seq lies
             // beyond canonical_end (they signed something canonical never covered).
             //
-            // Replicas: never valid (see `ChallengeResponse::Superseded`).
-            if challenge.replica {
+            // Replicas: never valid (see the `challenge_replica` notes).
+            let Some(agreement) = StorageAgreements::get(challenge.bucket_id, &challenge.provider)
+            else {
+                return Err(Error::InvalidSupersededClaim);
+            };
+            if matches!(agreement.role, ProviderRole::Replica { .. }) {
                 return Err(Error::InvalidSupersededClaim);
             }
             let Some(snapshot) = bucket.snapshot.as_ref() else {
