@@ -6,7 +6,7 @@
 //
 // Mirrors, byte for byte:
 //   - `crates/providers/storage/src/index/fs.rs`     → `metadata_merkle_root`
-//   - `crates/providers/storage/src/backend/mod.rs`  → `build_padded_merkle_tree`
+//   - `crates/primitives/storage/src/merkle.rs`      → `merkle_root`, `chunk_count`
 //   - `crates/primitives/storage/src/lib.rs`         → `hash_leaf`, `hash_children`, `bag_peaks`, `DEFAULT_CHUNK_SIZE`
 //
 // This is the multi-chunk Merkle DAG walk that `verify.ts` documents as the
@@ -69,24 +69,19 @@ export function bagPeaks(peaks: Uint8Array[]): Uint8Array {
 }
 
 /**
- * Balanced Merkle root over `leaves`, padded to the next power of two with
- * 32-byte zero hashes. Empty → 32 zero bytes; a single leaf → that leaf verbatim.
- * Identical to the provider's `build_padded_merkle_tree` / the tail of
- * `metadata_merkle_root`.
+ * Merkle root over `leaves`; an odd last node of a level moves up unchanged.
+ * Empty → 32 zero bytes; a single leaf → a copy of that leaf.
  */
-export function paddedMerkleRoot(leaves: Uint8Array[]): Uint8Array {
+export function merkleRoot(leaves: Uint8Array[]): Uint8Array {
   if (leaves.length === 0) return new Uint8Array(32);
   // Copy so the returned root never aliases the caller's input leaf buffer.
   if (leaves.length === 1) return leaves[0].slice();
 
   let level = leaves.slice();
-  const paddedLen = nextPowerOfTwo(level.length);
-  while (level.length < paddedLen) level.push(new Uint8Array(32));
-
   while (level.length > 1) {
     const next: Uint8Array[] = [];
     for (let i = 0; i < level.length; i += 2) {
-      next.push(hashChildren(level[i], level[i + 1]));
+      next.push(i + 1 < level.length ? hashChildren(level[i], level[i + 1]) : level[i]);
     }
     level = next;
   }
@@ -94,8 +89,16 @@ export function paddedMerkleRoot(leaves: Uint8Array[]): Uint8Array {
 }
 
 /**
+ * Number of chunks (tree leaves) of data with `dataSize` bytes; empty data is
+ * one chunk. Mirrors `chunk_count` in `crates/primitives/storage/src/merkle.rs`.
+ */
+export function chunkCount(dataSize: number): number {
+  return Math.max(1, Math.ceil(dataSize / DEFAULT_CHUNK_SIZE));
+}
+
+/**
  * A file's `data_root`: chunk the bytes at `DEFAULT_CHUNK_SIZE`, leaf-hash each
- * chunk, then `paddedMerkleRoot` over the chunk hashes. An empty file hashes a
+ * chunk, then `merkleRoot` over the chunk hashes. An empty file hashes a
  * single empty chunk; a single chunk yields its own hash. Mirrors `fs_put_file`.
  */
 export function computeDataRoot(bytes: Uint8Array): Uint8Array {
@@ -107,13 +110,13 @@ export function computeDataRoot(bytes: Uint8Array): Uint8Array {
       chunkHashes.push(hashLeaf(bytes.subarray(off, Math.min(off + DEFAULT_CHUNK_SIZE, bytes.length))));
     }
   }
-  return paddedMerkleRoot(chunkHashes);
+  return merkleRoot(chunkHashes);
 }
 
 /**
  * The drive's metadata Merkle root: one leaf per entry over
  * `utf8(path) ++ data_root[32] ++ u64_le(size)`, entries ordered by UTF-8 byte
- * value (matching Rust's `BTreeMap<String>`), folded by `paddedMerkleRoot`.
+ * value (matching Rust's `BTreeMap<String>`), folded by `merkleRoot`.
  * Empty drive → 32 zero bytes.
  */
 export function metadataMerkleRoot(entries: MerkleEntry[]): Uint8Array {
@@ -123,7 +126,7 @@ export function metadataMerkleRoot(entries: MerkleEntry[]): Uint8Array {
     .sort((a, b) => compareBytes(a.pathBytes, b.pathBytes));
 
   const leaves = prepared.map((e) => hashLeaf(concatBytes(e.pathBytes, e.dataRoot, u64le(e.size))));
-  return paddedMerkleRoot(leaves);
+  return merkleRoot(leaves);
 }
 
 /** Encode a `u64` as 8 little-endian bytes (`codec::Encode` for a plain `u64`). */
@@ -131,12 +134,6 @@ export function u64le(value: bigint): Uint8Array {
   const out = new Uint8Array(8);
   new DataView(out.buffer).setBigUint64(0, value, true);
   return out;
-}
-
-function nextPowerOfTwo(n: number): number {
-  let p = 1;
-  while (p < n) p <<= 1;
-  return p;
 }
 
 /** Lexicographic comparison of two byte arrays (Rust `[u8]`/`str` ordering). */

@@ -5,8 +5,7 @@
  *
  * Accounts: //Alice (provider), //Bob (bucket admin)
  *
- * The provider commits the tree over 4 chunks. With a power-of-two chunk
- * count, the padded tree has no padding:
+ * The provider commits the tree over 4 chunks:
  *
  *           root
  *          /    \
@@ -16,7 +15,8 @@
  *
  * Chunks hash with prefix `0x00` and internal nodes with `0x01`, so the 64
  * bytes of `L` (`hash(c0) || hash(c1)`) with the 1-step proof `[R]` do not
- * verify as chunk 0, and the chain rejects them with `InvalidProof`.
+ * verify as chunk 0, and the chain rejects them with `InvalidProof`. The chain
+ * also rejects the 1-step proof because 4 chunks need 2 siblings.
  *
  * 13.1 The provider answers a challenge on chunk 0 with the real chunk.
  * 13.2 A response to a challenge on chunk 0 with the bytes of `L` and the
@@ -33,7 +33,8 @@ import {
   ensureProviderRegistered,
   fetchChallengeProof,
   makeSigner,
-  paddedMerkleRoot,
+  DEFAULT_CHUNK_SIZE,
+  merkleRoot,
   providerFetch,
   putChunk,
   respondToChallenge,
@@ -59,11 +60,14 @@ async function main() {
       PROVIDER_URL,
       owner,
       provider,
-      { maxBytes: 1_048_576n, duration: 200 },
+      { maxBytes: 2_097_152n, duration: 200 },
       true, // finalize: the provider reads bucket membership from finalized state
     );
 
-    const chunks = [0, 1, 2, 3].map((i) => new Uint8Array(32).fill(i + 1));
+    // `/commit` accepts only DEFAULT_CHUNK_SIZE chunks, except a shorter last one.
+    const chunks = [0, 1, 2, 3].map((i) =>
+      new Uint8Array(i < 3 ? DEFAULT_CHUNK_SIZE : 32).fill(i + 1),
+    );
     const leaves = chunks.map((c) => computeCid(c));
     for (const chunk of chunks) {
       await putChunk(PROVIDER_URL, bucketId, chunk, owner);
@@ -71,7 +75,7 @@ async function main() {
     const left = await putInternal(PROVIDER_URL, bucketId, owner, leaves[0], leaves[1]);
     const right = await putInternal(PROVIDER_URL, bucketId, owner, leaves[2], leaves[3]);
     const root = await putInternal(PROVIDER_URL, bucketId, owner, left, right);
-    assert.ok(bytesEq(root, paddedMerkleRoot(leaves)), "root must be the padded root");
+    assert.ok(bytesEq(root, merkleRoot(leaves)), "root must be the Merkle root of the chunks");
 
     const commit: any = await providerFetch(PROVIDER_URL, "/commit", {
       method: "POST",

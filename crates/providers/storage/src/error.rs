@@ -39,6 +39,13 @@ pub enum Error {
     #[error("Invalid hash: expected {expected}, got {actual}")]
     InvalidHash { expected: String, actual: String },
 
+    /// The tree under a data root is not `merkle_tree` over chunks of
+    /// `DEFAULT_CHUNK_SIZE` bytes, with only the last chunk shorter. Split the
+    /// data into such chunks and upload the nodes of
+    /// `storage_primitives::merkle_tree`.
+    #[error("Non-canonical tree: {0}")]
+    NonCanonicalTree(String),
+
     #[error("Serialization error: {0}")]
     Serialization(String),
 

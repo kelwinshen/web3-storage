@@ -238,7 +238,7 @@ impl StorageUserClient {
         }
 
         // Trim to requested range
-        let chunk_size = 256 * 1024;
+        let chunk_size = u64::from(DEFAULT_CHUNK_SIZE);
         let start = (offset % chunk_size) as usize;
         let end = start + length as usize;
         let trimmed = if end <= data.len() {
@@ -425,7 +425,7 @@ impl StorageUserClient {
     pub async fn spot_check(&mut self, data_root: &H256, chunk_index: u64) -> ClientResult<bool> {
         use std::time::Instant;
 
-        let chunk_size = 256 * 1024u64; // 256 KiB
+        let chunk_size = u64::from(DEFAULT_CHUNK_SIZE);
         let offset = chunk_index * chunk_size;
         let provider_url = self.base.get_provider_url()?.to_string();
 
@@ -551,25 +551,20 @@ impl StorageUserClient {
                 "Cannot build Merkle tree with no leaves".to_string(),
             ));
         }
-        let padded_len = leaf_hashes.len().next_power_of_two();
-        let mut current_level = leaf_hashes.to_vec();
-        current_level.resize(padded_len, H256::zero());
-
-        while current_level.len() > 1 {
-            let mut next_level = Vec::new();
-
-            for pair in current_level.chunks(2) {
-                let parent = Node::Internal {
-                    left: pair[0],
-                    right: pair[1],
-                };
-                next_level.push(self.upload_node(provider_url, bucket_id, &parent).await?);
-            }
-
-            current_level = next_level;
+        let (root, nodes) = storage_primitives::merkle_tree(leaf_hashes);
+        for node in nodes {
+            self.upload_node(
+                provider_url,
+                bucket_id,
+                &Node::Internal {
+                    left: node.left,
+                    right: node.right,
+                },
+            )
+            .await?;
         }
 
-        Ok(current_level[0])
+        Ok(root)
     }
 
     // ═════════════════════════════════════════════════════════════════════════

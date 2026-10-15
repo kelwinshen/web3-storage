@@ -252,13 +252,11 @@ impl DiskStorage {
             let missing: Vec<String> = [left, right]
                 .into_iter()
                 .filter(|h| {
-                    **h != H256::zero()
-                        && self
-                            .db
-                            .get_cf(&cf_nodes, h.as_bytes())
-                            .ok()
-                            .flatten()
-                            .is_none()
+                    self.db
+                        .get_cf(&cf_nodes, h.as_bytes())
+                        .ok()
+                        .flatten()
+                        .is_none()
                 })
                 .map(|h| format!("0x{}", hex::encode(h.as_bytes())))
                 .collect();
@@ -362,6 +360,12 @@ impl DiskStorage {
             }
         }
 
+        // Reject non-canonical roots before the MMR changes.
+        let data_sizes = data_roots
+            .iter()
+            .map(|root| self.canonical_data_size(*root))
+            .collect::<Result<Vec<_>, _>>()?;
+
         // Get bucket and update MMR
         let mut bucket = self
             .get_bucket(bucket_id)
@@ -378,11 +382,9 @@ impl DiskStorage {
 
         // Add new leaves
         let start_index = bucket.leaves.len() as u64;
-        for (i, data_root) in data_roots.iter().enumerate() {
+        for (i, (data_root, data_size)) in data_roots.iter().zip(data_sizes).enumerate() {
             leaf_indices.push(start_index + i as u64);
 
-            // Calculate data size by traversing the stored node tree
-            let data_size = self.calculate_tree_size(*data_root);
             let total_size = bucket
                 .leaves
                 .last()
@@ -564,6 +566,8 @@ impl StorageBackend for DiskStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::build_merkle_tree;
+    use storage_primitives::DEFAULT_CHUNK_SIZE;
     use tempfile::TempDir;
 
     /// Open the database at `path` directly, bypassing `DiskStorage::new` and
@@ -572,11 +576,11 @@ mod tests {
         DB::open_cf(&DiskStorage::db_options(), path, COLUMN_FAMILIES).unwrap()
     }
 
-    /// A fresh database with bucket 1 initialised with a 1000 B quota.
-    fn storage_with_bucket() -> (DiskStorage, TempDir) {
+    /// A database with bucket 1 of `quota` bytes.
+    fn storage_with_bucket(quota: u64) -> (DiskStorage, TempDir) {
         let dir = TempDir::new().unwrap();
         let storage = DiskStorage::new(dir.path()).unwrap();
-        storage.init_bucket(1, 1_000).unwrap();
+        storage.init_bucket(1, quota).unwrap();
         (storage, dir)
     }
 
@@ -664,9 +668,105 @@ mod tests {
         );
     }
 
+    const BUCKET: BucketId = 1;
+
+    fn store_chunk_of_len(storage: &DiskStorage, byte: u8, len: usize) -> H256 {
+        let data = vec![byte; len];
+        let hash = hash_leaf(&data);
+        storage
+            .store_node(BUCKET, hash, ChunkTreeNode::Chunk(data))
+            .unwrap();
+        hash
+    }
+
+    fn store_chunk(storage: &DiskStorage, byte: u8) -> H256 {
+        store_chunk_of_len(storage, byte, DEFAULT_CHUNK_SIZE as usize)
+    }
+
+    fn store_parent(storage: &DiskStorage, left: H256, right: H256) -> H256 {
+        let hash = storage_primitives::hash_children(left, right);
+        storage
+            .store_node(BUCKET, hash, ChunkTreeNode::Internal { left, right })
+            .unwrap();
+        hash
+    }
+
+    fn assert_rejected_and_bucket_unchanged(storage: &DiskStorage, root: H256) {
+        let before = storage.get_bucket(BUCKET).unwrap();
+        let err = storage.commit(BUCKET, vec![root]).unwrap_err();
+        assert!(matches!(err, Error::NonCanonicalTree(_)), "got {err:?}");
+        let after = storage.get_bucket(BUCKET).unwrap();
+        assert_eq!(after.leaves, before.leaves);
+        assert_eq!(after.mmr_root, before.mmr_root);
+    }
+
+    /// Room for a few chunks of `DEFAULT_CHUNK_SIZE`.
+    const COMMIT_QUOTA: u64 = 1_000_000;
+
+    #[test]
+    fn commit_rejects_right_leaning_tree() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let [c0, c1, c2] = [1, 2, 3].map(|b| store_chunk(&storage, b));
+        let right = store_parent(&storage, c1, c2);
+        let root = store_parent(&storage, c0, right);
+        assert_rejected_and_bucket_unchanged(&storage, root);
+    }
+
+    #[test]
+    fn commit_accepts_tree_with_the_odd_chunk_moved_up_and_single_leaf() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let [c0, c1, c2] = [1, 2, 3].map(|b| store_chunk(&storage, b));
+        let root = build_merkle_tree(&storage, BUCKET, &[c0, c1, c2]).unwrap();
+        assert_eq!(
+            root,
+            storage_primitives::hash_children(storage_primitives::hash_children(c0, c1), c2)
+        );
+        storage.commit(BUCKET, vec![root, c0]).unwrap();
+        let leaves = storage.get_bucket(BUCKET).unwrap().leaves;
+        assert_eq!(leaves.len(), 2);
+        assert_eq!(leaves[0].data_size, 3 * DEFAULT_CHUNK_SIZE as u64);
+    }
+
+    #[test]
+    fn commit_accepts_a_short_last_chunk() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let [c0, c1] = [1, 2].map(|b| store_chunk(&storage, b));
+        let c2 = store_chunk_of_len(&storage, 3, 10);
+        let root = build_merkle_tree(&storage, BUCKET, &[c0, c1, c2]).unwrap();
+        storage.commit(BUCKET, vec![root]).unwrap();
+        let leaves = storage.get_bucket(BUCKET).unwrap().leaves;
+        assert_eq!(leaves[0].data_size, 2 * DEFAULT_CHUNK_SIZE as u64 + 10);
+    }
+
+    #[test]
+    fn commit_accepts_a_single_empty_chunk() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let root = store_chunk_of_len(&storage, 0, 0);
+        storage.commit(BUCKET, vec![root]).unwrap();
+        assert_eq!(storage.get_bucket(BUCKET).unwrap().leaves[0].data_size, 0);
+    }
+
+    #[test]
+    fn commit_rejects_a_short_chunk_that_is_not_last() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let c0 = store_chunk_of_len(&storage, 1, 10);
+        let c1 = store_chunk(&storage, 2);
+        let root = store_parent(&storage, c0, c1);
+        assert_rejected_and_bucket_unchanged(&storage, root);
+    }
+
+    #[test]
+    fn commit_rejects_an_empty_last_chunk_of_several() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let c0 = store_chunk(&storage, 1);
+        let c1 = store_chunk_of_len(&storage, 2, 0);
+        let root = store_parent(&storage, c0, c1);
+        assert_rejected_and_bucket_unchanged(&storage, root);
+    }
+
     #[test]
     fn store_node_rejects_internal_node_whose_children_disagree_with_expected_hash() {
-        let (storage, _dir) = storage_with_bucket();
+        let (storage, _dir) = storage_with_bucket(1_000);
         let bucket_id: BucketId = 1;
 
         let left = H256::zero();
@@ -686,7 +786,7 @@ mod tests {
 
     #[test]
     fn store_node_rejects_missing_child() {
-        let (storage, _dir) = storage_with_bucket();
+        let (storage, _dir) = storage_with_bucket(1_000);
         let bucket_id: BucketId = 1;
 
         let missing_child = H256::repeat_byte(0x42);
@@ -705,31 +805,38 @@ mod tests {
     }
 
     #[test]
-    fn internal_node_with_zero_children_stores_and_charges_64_bytes() {
-        let (storage, _dir) = storage_with_bucket();
-        let bucket_id: BucketId = 1;
+    fn internal_node_charges_64_bytes() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let [left, right] = [1, 2].map(|b| store_chunk_of_len(&storage, b, 10));
+        let used = storage.get_bucket(BUCKET).unwrap().used_bytes;
 
-        // Zero-padding children need no existing node, so this isolates the
-        // quota charge from the children-exist check.
-        let hash = storage_primitives::hash_children(H256::zero(), H256::zero());
-        storage
+        store_parent(&storage, left, right);
+
+        let bucket = storage.get_bucket(BUCKET).unwrap();
+        assert_eq!(bucket.used_bytes, used + 64);
+    }
+
+    #[test]
+    fn store_node_rejects_a_zero_child() {
+        let (storage, _dir) = storage_with_bucket(COMMIT_QUOTA);
+        let c0 = store_chunk(&storage, 1);
+        let hash = storage_primitives::hash_children(c0, H256::zero());
+        let err = storage
             .store_node(
-                bucket_id,
+                BUCKET,
                 hash,
                 ChunkTreeNode::Internal {
-                    left: H256::zero(),
+                    left: c0,
                     right: H256::zero(),
                 },
             )
-            .expect("an all-zero-children internal node has nothing to look up");
-
-        let bucket = storage.get_bucket(bucket_id).unwrap();
-        assert_eq!(bucket.used_bytes, 64);
+            .unwrap_err();
+        assert!(matches!(err, Error::ChildrenMissing(_)), "got {err:?}");
     }
 
     #[test]
     fn get_node_round_trips_both_variants() {
-        let (storage, _dir) = storage_with_bucket();
+        let (storage, _dir) = storage_with_bucket(1_000);
         let bucket_id: BucketId = 1;
 
         let chunk_data = vec![7u8, 8, 9];
@@ -830,19 +937,25 @@ mod tests {
             leaves.push(hash);
         }
 
-        let data_root = crate::backend::build_padded_merkle_tree(&storage, 1, &leaves);
+        let data_root = crate::backend::build_merkle_tree(&storage, 1, &leaves).unwrap();
         assert_eq!(
             data_root,
-            "a3dd32d607debce875c8dcfb1417d07c9bc4c5cccd0bacefd0a4a9473d958e37"
+            "17321db51c1ef3ec1f77e271aa300b4e5c6091708bcba37e46025774a26142ee"
                 .parse::<H256>()
                 .unwrap()
         );
 
-        let (mmr_root, _, leaf_indices) = storage.commit(1, vec![data_root]).unwrap();
+        // `commit` accepts only canonical chunk sizes, so the MMR vector
+        // commits the single chunk `abc`.
+        let abc = hash_leaf(b"abc");
+        storage
+            .store_node(1, abc, ChunkTreeNode::Chunk(b"abc".to_vec()))
+            .unwrap();
+        let (mmr_root, _, leaf_indices) = storage.commit(1, vec![abc]).unwrap();
         assert_eq!(leaf_indices, vec![0]);
         assert_eq!(
             mmr_root,
-            "51ab33e2c8d5544527ceef10834d1ba24fe867abcf8766ce8f88ee56edd0f1d5"
+            "5892aeee490d7378e4dcabfaf79053c3073ece6437f74c001c82a55de8ac977c"
                 .parse::<H256>()
                 .unwrap()
         );

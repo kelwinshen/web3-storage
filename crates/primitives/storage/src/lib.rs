@@ -16,17 +16,19 @@ use scale_info::TypeInfo;
 use sp_core::H256;
 
 pub mod agreement_term;
+pub mod merkle;
 
 pub use agreement_term::*;
+pub use merkle::*;
 
 /// Bucket ID is a stable, unique identifier (not an index into a collection).
 /// Using u64 ensures IDs never get reused even if buckets are deleted.
 pub type BucketId = u64;
 
-/// Chunk size, 256 KiB, and the largest leaf a challenge response can contain.
-///
-/// The runtime uses it as `MaxChunkSize`. A provider must not store or sign a
-/// leaf above it, because that leaf cannot be proven on-chain.
+/// Chunk size, 256 KiB. Every chunk of a committed data root has this size,
+/// except the last, which can be shorter. The runtime uses it as
+/// `MaxChunkSize`. The provider rejects a larger chunk on upload and replica
+/// sync.
 pub const DEFAULT_CHUNK_SIZE: u32 = 256 * 1024;
 
 /// Prime numbers used for historical root bucketing.
@@ -520,33 +522,6 @@ pub fn bag_peaks(peaks: &[H256]) -> H256 {
 // Verification Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Verify a Merkle proof
-pub fn verify_merkle_proof(leaf_hash: H256, index: u64, proof: &MerkleProof, root: &H256) -> bool {
-    if proof.siblings.len() != proof.path.len() {
-        return false;
-    }
-
-    let mut current = leaf_hash;
-    let mut current_index = index;
-
-    for (sibling, is_right) in proof.siblings.iter().zip(proof.path.iter()) {
-        let expected_right = current_index % 2 == 1;
-        if *is_right != expected_right {
-            return false;
-        }
-
-        current = if *is_right {
-            hash_children(*sibling, current)
-        } else {
-            hash_children(current, *sibling)
-        };
-
-        current_index /= 2;
-    }
-
-    current == *root
-}
-
 /// Verify an MMR proof
 ///
 /// This verifies that a leaf at the given index with the given hash
@@ -734,7 +709,7 @@ mod tests {
         const LEAF_C: &str = "960259f5c0885e7b7967cc25158bc9069db1ca8222e7beffdfffe5dea0297966";
         const NODE_AB: &str = "ee616625a590167bc4b3dc703ab4f3f2ddecbee6b9d05fee9281f02046e6082e";
         const ROOT_3_CHUNKS: &str =
-            "a3dd32d607debce875c8dcfb1417d07c9bc4c5cccd0bacefd0a4a9473d958e37";
+            "17321db51c1ef3ec1f77e271aa300b4e5c6091708bcba37e46025774a26142ee";
         const MMR_LEAF: &str = "3fbff3e341e04b94439e2f793f6983fda1cb58b7e8cc09b73670245f7e816f8d";
         const BAG_2_PEAKS: &str =
             "39ffd1718a7a2d0f61de8f7902cb47d9661392d004d5b91e835ccd3d475cd035";
@@ -754,10 +729,13 @@ mod tests {
         }
 
         #[test]
-        fn three_chunk_root_pads_with_an_untagged_zero_leaf() {
+        fn three_chunk_root_moves_the_odd_leaf_up() {
             let left = hash_children(h(LEAF_A), h(LEAF_B));
-            let right = hash_children(h(LEAF_C), H256::zero());
-            assert_eq!(hash_children(left, right), h(ROOT_3_CHUNKS));
+            assert_eq!(hash_children(left, h(LEAF_C)), h(ROOT_3_CHUNKS));
+            assert_eq!(
+                merkle_root(&[h(LEAF_A), h(LEAF_B), h(LEAF_C)]),
+                h(ROOT_3_CHUNKS)
+            );
         }
 
         #[test]
@@ -798,9 +776,11 @@ mod tests {
             siblings: vec![leaves[1], right],
             path: vec![false, false],
         };
-        assert!(verify_merkle_proof(leaves[0], 0, &honest, &root));
+        assert!(verify_merkle_proof(leaves[0], 0, 4, &honest, &root));
 
-        // The bytes of `left` presented as chunk data with one sibling.
+        // The bytes of `left` presented as chunk data with one sibling. A
+        // count of 2 makes one sibling the right length, so only the prefix
+        // rejects the proof.
         let mut node_bytes = leaves[0].as_bytes().to_vec();
         node_bytes.extend_from_slice(leaves[1].as_bytes());
         let forged = MerkleProof {
@@ -810,6 +790,7 @@ mod tests {
         assert!(!verify_merkle_proof(
             hash_leaf(&node_bytes),
             0,
+            2,
             &forged,
             &root
         ));
