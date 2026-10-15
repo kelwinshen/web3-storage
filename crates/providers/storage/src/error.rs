@@ -12,6 +12,16 @@ pub enum Error {
     #[error("Children missing: {0:?}")]
     ChildrenMissing(Vec<String>),
 
+    /// An internal node arrived with a child list that is not exactly two
+    /// hashes. Send the left and right child hashes.
+    #[error("Invalid child count: expected 2, got {0}")]
+    InvalidChildCount(usize),
+
+    /// An internal node arrived with `data` that is not the left child hash
+    /// followed by the right child hash. Send exactly those 64 bytes.
+    #[error("Internal node data is not the concatenation of its children")]
+    InvalidInternalNodeData,
+
     #[error("Quota exceeded: used {used}, max {max}")]
     QuotaExceeded { used: u64, max: u64 },
 
@@ -38,4 +48,10 @@ pub enum Error {
     /// fault.
     #[error("Column family not found: {0}")]
     ColumnFamilyMissing(&'static str),
+
+    /// The database on disk was written in a format this build cannot read.
+    /// Opening it anyway would decode its records wrongly, so the engine
+    /// refuses rather than reporting phantom missing data.
+    #[error("Incompatible on-disk format: {0}")]
+    IncompatibleFormat(String),
 }

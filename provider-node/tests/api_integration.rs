@@ -349,6 +349,149 @@ common::backend_tests! {
 }
 
 common::backend_tests! {
+    async fn test_upload_internal_node_rejects_children_that_are_not_a_pair(backend) {
+        let server = TestServer::new(backend).await;
+
+        // The child count is checked before anything is looked up, so the
+        // child does not need to exist.
+        let child_hash = H256::repeat_byte(0x11);
+        let child_hex = format!("0x{}", hex_encode(child_hash.as_bytes()));
+
+        let hash = storage_primitives::blake2_256(child_hash.as_bytes());
+        let response = server
+            .client
+            .put(server.url("/node"))
+            .json(&json!({
+                "bucket_id": 1,
+                "hash": format!("0x{}", hex_encode(hash.as_bytes())),
+                "data": BASE64.encode(child_hash.as_bytes()),
+                "children": [child_hex],
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body: Value = response.json().await.unwrap();
+        assert_eq!(body["error"], "invalid_child_count");
+        assert_eq!(body["details"]["expected"], 2);
+        assert_eq!(body["details"]["actual"], 1);
+    }
+}
+
+common::backend_tests! {
+    async fn test_upload_internal_node_rejects_data_that_is_not_its_children(backend) {
+        let server = TestServer::new(backend).await;
+
+        let (left, right) = (H256::from_low_u64_be(1), H256::from_low_u64_be(2));
+        let hash = storage_primitives::hash_children(left, right);
+
+        let response = server
+            .client
+            .put(server.url("/node"))
+            .json(&json!({
+                "bucket_id": 1,
+                "hash": format!("0x{}", hex_encode(hash.as_bytes())),
+                "data": BASE64.encode(b"unrelated bytes"),
+                "children": [
+                    format!("0x{}", hex_encode(left.as_bytes())),
+                    format!("0x{}", hex_encode(right.as_bytes())),
+                ],
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body: Value = response.json().await.unwrap();
+        assert_eq!(body["error"], "invalid_internal_node_data");
+    }
+}
+
+// An internal node's data is derived from its children rather than kept on
+// disk, so both download paths have to rebuild it - a client that rehashes what
+// it downloaded must land back on the hash it asked for.
+common::backend_tests! {
+    async fn test_download_internal_node_returns_rehashable_data(backend) {
+        let server = TestServer::new(backend).await;
+
+        let mut child_hexes = Vec::new();
+        let mut node_data = Vec::new();
+        for chunk in [b"left-chunk".as_slice(), b"right-chunk".as_slice()] {
+            let chunk_hash = storage_primitives::blake2_256(chunk);
+            child_hexes.push(format!("0x{}", hex_encode(chunk_hash.as_bytes())));
+            node_data.extend_from_slice(chunk_hash.as_bytes());
+
+            server
+                .client
+                .put(server.url("/node"))
+                .json(&json!({
+                    "bucket_id": 1,
+                    "hash": format!("0x{}", hex_encode(chunk_hash.as_bytes())),
+                    "data": BASE64.encode(chunk),
+                    "children": null,
+                }))
+                .send()
+                .await
+                .unwrap();
+        }
+
+        let hash = storage_primitives::blake2_256(&node_data);
+        let hash_hex = format!("0x{}", hex_encode(hash.as_bytes()));
+
+        let response = server
+            .client
+            .put(server.url("/node"))
+            .json(&json!({
+                "bucket_id": 1,
+                "hash": hash_hex,
+                "data": BASE64.encode(&node_data),
+                "children": child_hexes,
+            }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // GET /node
+        let response = server
+            .client
+            .get(server.url(&format!("/node?hash={hash_hex}")))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body: Value = response.json().await.unwrap();
+        let downloaded = BASE64.decode(body["data"].as_str().unwrap()).unwrap();
+        assert_eq!(downloaded, node_data);
+        assert_eq!(storage_primitives::blake2_256(&downloaded), hash);
+        assert_eq!(body["children"], json!(child_hexes));
+
+        // /fetch_nodes must rebuild the same bytes.
+        let response = server
+            .client
+            .post(server.url("/fetch_nodes"))
+            .json(&json!({
+                "bucket_id": 1,
+                "hashes": [hash_hex],
+            }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body: Value = response.json().await.unwrap();
+        let node = &body["nodes"].as_array().unwrap()[0];
+        let fetched = BASE64.decode(node["data"].as_str().unwrap()).unwrap();
+        assert_eq!(storage_primitives::blake2_256(&fetched), hash);
+        assert_eq!(node["children"], json!(child_hexes));
+    }
+}
+
+common::backend_tests! {
     async fn test_full_upload_commit_read_flow(backend) {
         let server = TestServer::new(backend).await;
 
@@ -1202,6 +1345,23 @@ common::backend_tests! {
         let resp = server
             .client
             .get(server.url("/node?hash=not_hex_at_all"))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+
+        let body: Value = resp.json().await.unwrap();
+        assert_eq!(body["error"], "invalid_hash");
+    }
+}
+
+common::backend_tests! {
+    async fn test_get_node_hash_of_wrong_length(backend) {
+        let server = TestServer::new(backend).await;
+
+        let resp = server
+            .client
+            .get(server.url("/node?hash=0x01"))
             .send()
             .await
             .unwrap();
