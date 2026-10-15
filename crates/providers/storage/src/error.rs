@@ -25,6 +25,11 @@ pub enum Error {
     #[error("Quota exceeded: used {used}, max {max}")]
     QuotaExceeded { used: u64, max: u64 },
 
+    /// A leaf chunk above `DEFAULT_CHUNK_SIZE` bytes. Split the data into chunks
+    /// of at most that size.
+    #[error("Chunk too large: {size} bytes, max {max}", max = storage_primitives::DEFAULT_CHUNK_SIZE)]
+    ChunkTooLarge { size: u64 },
+
     #[error("Bucket not found: {0}")]
     BucketNotFound(u64),
 

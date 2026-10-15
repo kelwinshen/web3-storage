@@ -159,6 +159,16 @@ impl IntoResponse for Error {
                         details: Some(serde_json::json!({ "expected": 2, "actual": count })),
                     },
                 ),
+                StorageError::ChunkTooLarge { size } => (
+                    StatusCode::BAD_REQUEST,
+                    ErrorResponse {
+                        error: "chunk_too_large".to_string(),
+                        details: Some(serde_json::json!({
+                            "size": size,
+                            "max": storage_primitives::DEFAULT_CHUNK_SIZE,
+                        })),
+                    },
+                ),
                 StorageError::InvalidInternalNodeData => (
                     StatusCode::BAD_REQUEST,
                     ErrorResponse {
@@ -494,6 +504,12 @@ mod tests {
             status_of(Error::from(provider_storage::Error::ChildrenMissing(
                 vec![]
             ))),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            status_of(Error::from(provider_storage::Error::ChunkTooLarge {
+                size: 2
+            })),
             StatusCode::BAD_REQUEST
         );
         assert_eq!(

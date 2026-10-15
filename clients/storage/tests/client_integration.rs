@@ -11,7 +11,8 @@ mod common;
 use common::{make_client, start_test_provider};
 use provider_storage::{build_padded_merkle_tree, temp_rocksdb};
 use sp_core::H256;
-use storage_client::{ChunkingStrategy, EncryptionKey, Node, ENCRYPTION_OVERHEAD};
+use storage_client::{ChunkingStrategy, ClientError, EncryptionKey, Node, ENCRYPTION_OVERHEAD};
+use storage_primitives::DEFAULT_CHUNK_SIZE;
 
 // ============================================================================
 // Health
@@ -68,6 +69,23 @@ async fn test_upload_large_data_multiple_chunks() {
         .unwrap();
 
     assert_ne!(data_root, H256::zero());
+}
+
+#[tokio::test]
+async fn test_upload_rejects_chunk_size_outside_the_allowed_range() {
+    // Nothing listens here, so a request would fail with `ClientError::Http`.
+    let client = make_client("http://127.0.0.1:1".to_string());
+
+    for chunk_size in [0, DEFAULT_CHUNK_SIZE as usize + 1] {
+        let err = client
+            .upload(1, b"data", ChunkingStrategy::Fixed(chunk_size))
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, ClientError::Config(_)),
+            "chunk size {chunk_size}: {err:?}"
+        );
+    }
 }
 
 #[tokio::test]

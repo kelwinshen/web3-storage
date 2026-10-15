@@ -10,6 +10,7 @@ import {
   base64ToBytes,
   bytesToBase64,
   CidMismatchError,
+  DEFAULT_CHUNK_SIZE,
   hashChildren,
   hashLeaf,
   nodeHash,
@@ -112,6 +113,8 @@ export interface PutChunkResult {
  *
  * Pass `children` to store an internal node instead of a leaf chunk. The
  * provider requires every child to exist already.
+ *
+ * Throws `RangeError` for a leaf above `DEFAULT_CHUNK_SIZE`, before any request.
  */
 export async function putChunk(
   providerUrl: string,
@@ -122,6 +125,11 @@ export async function putChunk(
 ): Promise<PutChunkResult> {
   const sign = { signer: signer.signer, bucketId };
   const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
+  if (!children && bytes.length > DEFAULT_CHUNK_SIZE) {
+    throw new RangeError(
+      `chunk is ${bytes.length} bytes, above the ${DEFAULT_CHUNK_SIZE} byte maximum; split the data into ${DEFAULT_CHUNK_SIZE} byte chunks`,
+    );
+  }
   const cid = children ? hashChildren(children[0], children[1]) : hashLeaf(bytes);
   const hash = toHex(cid);
   await providerFetch(providerUrl, "/node", {
@@ -144,6 +152,8 @@ export async function putChunk(
  *
  * `signer` authenticates the `PUT /node` and `POST /commit` requests; it must
  * hold a Writer/Admin role on `bucketId` (the provider always enforces this).
+ *
+ * Throws `RangeError` for a leaf above `DEFAULT_CHUNK_SIZE`, before any request.
  */
 export async function uploadChunk(
   providerUrl: string,
@@ -151,23 +161,11 @@ export async function uploadChunk(
   data: Uint8Array | string,
   signer: ChainSigner,
 ): Promise<{ hash: string; data: Uint8Array; commit: any }> {
-  const sign = { signer: signer.signer, bucketId };
-  const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
-  const hash = toHex(hashLeaf(bytes));
-  await providerFetch(providerUrl, "/node", {
-    method: "PUT",
-    body: {
-      bucket_id: Number(bucketId),
-      hash,
-      data: bytesToBase64(bytes),
-      children: null,
-    },
-    sign,
-  });
+  const { hash, data: bytes } = await putChunk(providerUrl, bucketId, data, signer);
   const commit = await providerFetch(providerUrl, "/commit", {
     method: "POST",
     body: { bucket_id: Number(bucketId), data_roots: [hash] },
-    sign,
+    sign: { signer: signer.signer, bucketId },
   });
   return { hash, data: bytes, commit };
 }

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   bytesToBase64,
   CidMismatchError,
+  DEFAULT_CHUNK_SIZE,
   hashChildren,
   hashLeaf,
   toHex,
@@ -118,5 +119,22 @@ describe("chunk uploads", () => {
     const [put, commit] = fetchMock.mock.calls.map((call) => JSON.parse(call[1]?.body as string));
     expect(put.hash).toBe(expected);
     expect(commit.data_roots).toEqual([expected]);
+  });
+
+  it("putChunk and uploadChunk throw for a leaf above DEFAULT_CHUNK_SIZE without a request", async () => {
+    const fetchMock = stubFetch(() => ({}));
+    const oversized = new Uint8Array(DEFAULT_CHUNK_SIZE + 1);
+    await expect(putChunk(PROVIDER, 1n, oversized, signer)).rejects.toThrow(RangeError);
+    await expect(uploadChunk(PROVIDER, 1n, oversized, signer)).rejects.toThrow(RangeError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("putChunk and uploadChunk accept a leaf of DEFAULT_CHUNK_SIZE", async () => {
+    const fetchMock = stubFetch(() => ({}));
+    const leaf = new Uint8Array(DEFAULT_CHUNK_SIZE);
+    await putChunk(PROVIDER, 1n, leaf, signer);
+    await uploadChunk(PROVIDER, 1n, leaf, signer);
+    // One PUT from putChunk, then a PUT and a commit from uploadChunk.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

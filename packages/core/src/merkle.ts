@@ -16,7 +16,10 @@ import { blake2b256 } from "@polkadot-labs/hdkd-helpers";
 
 import { concatBytes } from "./bytes.js";
 
-/** Mirror of DEFAULT_CHUNK_SIZE in crates/primitives/storage/src/lib.rs. */
+/**
+ * Mirror of DEFAULT_CHUNK_SIZE in crates/primitives/storage/src/lib.rs: the
+ * chunk size, and the largest leaf a challenge response can contain.
+ */
 export const DEFAULT_CHUNK_SIZE = 256 * 1024;
 
 /** Prefix of an internal node preimage; leaves use a different prefix. */
