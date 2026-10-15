@@ -16,7 +16,7 @@ use crate::verification::ClientVerifier;
 use crate::Signer;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use sp_core::H256;
-use storage_primitives::{blake2_256, BucketId};
+use storage_primitives::{hash_children, hash_leaf, BucketId};
 
 /// Client for storage users (end users who store/retrieve data).
 pub struct StorageUserClient {
@@ -216,7 +216,7 @@ impl StorageUserClient {
 
             // Verify chunk hash
             let expected_hash = BaseClient::hex_decode(&chunk.hash)?;
-            let actual_hash = blake2_256(&chunk_data);
+            let actual_hash = hash_leaf(&chunk_data);
             if actual_hash.as_bytes() != expected_hash.as_slice() {
                 return Err(ClientError::VerificationFailed);
             }
@@ -675,8 +675,8 @@ impl Node {
     /// children for an internal node.
     pub fn hash(&self) -> H256 {
         match self {
-            Self::Chunk(data) => blake2_256(data),
-            Self::Internal { left, right } => storage_primitives::hash_children(*left, *right),
+            Self::Chunk(data) => hash_leaf(data),
+            Self::Internal { left, right } => hash_children(*left, *right),
         }
     }
 
@@ -847,7 +847,7 @@ mod tests {
     #[test]
     fn node_hash_is_the_chunk_hash_or_the_hash_of_the_children() {
         let (left, right) = (H256::repeat_byte(1), H256::repeat_byte(2));
-        assert_eq!(Node::Chunk(vec![1, 2, 3]).hash(), blake2_256(&[1, 2, 3]));
+        assert_eq!(Node::Chunk(vec![1, 2, 3]).hash(), hash_leaf(&[1, 2, 3]));
         assert_eq!(
             Node::Internal { left, right }.hash(),
             storage_primitives::hash_children(left, right)

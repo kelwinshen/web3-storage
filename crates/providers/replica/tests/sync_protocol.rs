@@ -22,7 +22,7 @@ use provider_storage::{temp_rocksdb, ChunkTreeNode, StorageBackend};
 use sp_core::H256;
 use std::collections::HashMap;
 use std::sync::Arc;
-use storage_primitives::{blake2_256, hash_children, BucketId, MmrLeaf};
+use storage_primitives::{hash_children, hash_leaf, BucketId, MmrLeaf};
 use tempfile::TempDir;
 
 const BUCKET: BucketId = 1;
@@ -220,16 +220,16 @@ async fn a_node_whose_hash_does_not_match_its_data_is_rejected() {
     assert_err!(
         sync_serving_node(claimed, reply).await,
         Error::NodeHashMismatch { expected, actual }
-            if expected == claimed && actual == blake2_256(b"payload hashing to something else")
+            if expected == claimed && actual == hash_leaf(b"payload hashing to something else")
     );
 }
 
 #[tokio::test]
 async fn an_internal_node_with_the_wrong_hash_is_rejected_before_its_children_are_stored() {
     let left_data = b"left-chunk".to_vec();
-    let left = blake2_256(&left_data);
+    let left = hash_leaf(&left_data);
     let right_data = b"right-chunk".to_vec();
-    let right = blake2_256(&right_data);
+    let right = hash_leaf(&right_data);
     // The primary serves a well-formed internal node under a hash that is not
     // the hash of its children.
     let requested = H256::repeat_byte(0x11);
@@ -278,7 +278,7 @@ async fn an_internal_node_with_the_wrong_hash_is_rejected_before_its_children_ar
 }
 
 /// KNOWN DEFECT: `/mmr_peaks` answers with MMR hashes - the provider builds
-/// them as `blake2_256(MmrLeaf.encode())` plus internal MMR hashes that are
+/// them as `hash_leaf(MmrLeaf.encode())` plus internal MMR hashes that are
 /// never persisted - while `/node` is keyed by chunk-data hash. So every sync
 /// of a non-empty bucket ends at this 404, whatever the tree shape. Described
 /// in #392 (closed as not planned), fixed by the rework in #65, caught by the
@@ -287,9 +287,9 @@ async fn an_internal_node_with_the_wrong_hash_is_rejected_before_its_children_ar
 async fn peak_hashes_are_not_node_keys_so_every_real_sync_404s() {
     // An MMR peak: the hash of a leaf record, not of any stored chunk, so the
     // mock has no `/node` entry for it - exactly as a real primary would not.
-    let peak = blake2_256(
+    let peak = hash_leaf(
         &MmrLeaf {
-            data_root: blake2_256(b"chunk"),
+            data_root: hash_leaf(b"chunk"),
             data_size: 5,
             total_size: 5,
         }
@@ -310,9 +310,9 @@ async fn peak_hashes_are_not_node_keys_so_every_real_sync_404s() {
 #[tokio::test]
 async fn an_internal_peak_is_stored_after_the_children_beneath_it() {
     let left_data = b"left-chunk".to_vec();
-    let left = blake2_256(&left_data);
+    let left = hash_leaf(&left_data);
     let right_data = b"right-chunk".to_vec();
-    let right = blake2_256(&right_data);
+    let right = hash_leaf(&right_data);
     // An internal node is identified by its children, and a real primary
     // serves their concatenation as its `data`.
     let parent = hash_children(left, right);
@@ -365,7 +365,7 @@ async fn an_internal_peak_is_stored_after_the_children_beneath_it() {
 async fn a_root_we_already_hold_returns_without_fetching_any_node() {
     let f = fixture();
     let data = b"already stored".to_vec();
-    let leaf = blake2_256(&data);
+    let leaf = hash_leaf(&data);
     f.storage.init_bucket(BUCKET, u64::MAX).unwrap();
     f.storage
         .store_node(BUCKET, leaf, ChunkTreeNode::Chunk(data))
@@ -387,7 +387,7 @@ async fn a_root_we_already_hold_returns_without_fetching_any_node() {
 async fn a_node_we_already_hold_is_not_refetched() {
     let f = fixture();
     let data = b"cached payload".to_vec();
-    let leaf = blake2_256(&data);
+    let leaf = hash_leaf(&data);
     f.storage.init_bucket(BUCKET, u64::MAX).unwrap();
     f.storage
         .store_node(BUCKET, leaf, ChunkTreeNode::Chunk(data))
@@ -411,7 +411,7 @@ async fn a_node_we_already_hold_is_not_refetched() {
 async fn a_peak_naming_a_stored_node_is_fetched_and_stored() {
     let f = fixture();
     let data = b"leaf payload".to_vec();
-    let leaf = blake2_256(&data);
+    let leaf = hash_leaf(&data);
     let target = unheld_root();
 
     let nodes = HashMap::from([(

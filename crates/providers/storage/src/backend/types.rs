@@ -72,9 +72,9 @@ impl BucketState {
 /// it cannot be constructed, encoded, or decoded.
 #[derive(Debug, Clone, PartialEq, Encode, Decode)]
 pub enum ChunkTreeNode {
-    /// Leaf: hash = blake2_256(data)
+    /// Leaf: hash = hash_leaf(data) = blake2_256(0x00 ++ data)
     Chunk(Vec<u8>),
-    /// Internal: hash = hash_children(left, right)
+    /// Internal: hash = hash_children(left, right) = blake2_256(0x01 ++ left ++ right)
     Internal {
         /// Left child.
         left: H256,
@@ -104,9 +104,10 @@ impl ChunkTreeNode {
         Ok(node)
     }
 
-    /// The bytes that hash to this node's identity: `data` for a chunk,
-    /// `concat(children)` for an internal node. A chunk's bytes are borrowed,
-    /// not copied.
+    /// The bytes this node serves as data: `data` for a chunk,
+    /// `concat(children)` for an internal node. The node's hash is taken over
+    /// these bytes behind a prefix that depends on the node kind, see
+    /// [`Self::hash`]. A chunk's bytes are borrowed, not copied.
     pub fn preimage(&self) -> Cow<'_, [u8]> {
         match self {
             Self::Chunk(data) => Cow::Borrowed(data),
@@ -119,7 +120,7 @@ impl ChunkTreeNode {
     /// This node's content hash.
     pub fn hash(&self) -> H256 {
         match self {
-            Self::Chunk(data) => storage_primitives::blake2_256(data),
+            Self::Chunk(data) => storage_primitives::hash_leaf(data),
             Self::Internal { left, right } => hash_children(*left, *right),
         }
     }
@@ -213,7 +214,7 @@ mod tests {
 
         #[test]
         fn mmr_leaf() {
-            // Also hashed (`blake2_256(leaf.encode())`) to build the MMR, so a
+            // Also hashed (`hash_leaf(leaf.encode())`) to build the MMR, so a
             // layout change breaks on-chain MMR root reproducibility too.
             assert_golden(
                 MmrLeaf {
@@ -305,7 +306,7 @@ mod tests {
     fn chunk_preimage_and_hash_are_its_data() {
         let node = ChunkTreeNode::Chunk(vec![1, 2, 3]);
         assert_eq!(*node.preimage(), [1, 2, 3]);
-        assert_eq!(node.hash(), storage_primitives::blake2_256(&[1, 2, 3]));
+        assert_eq!(node.hash(), storage_primitives::hash_leaf(&[1, 2, 3]));
     }
 
     #[test]
