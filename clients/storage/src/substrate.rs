@@ -419,6 +419,13 @@ pub mod extrinsics {
             response,
         )
     }
+
+    /// Create a resolve_expired_challenge extrinsic payload.
+    pub fn resolve_expired_challenge(challenge_id: (u32, u16)) -> impl Payload {
+        api::tx()
+            .storage_provider()
+            .resolve_expired_challenge(convert::challenge_id(challenge_id.0, challenge_id.1))
+    }
 }
 
 // Helper functions for common operations
@@ -494,4 +501,18 @@ pub fn parse_h256(hex: &str) -> Result<H256, ClientError> {
 /// Convert H256 to hex string.
 pub fn h256_to_hex(hash: &H256) -> String {
     format!("0x{}", hex::encode(hash.as_bytes()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_h256_rejects_a_hash_of_wrong_length() {
+        assert!(parse_h256(&format!("0x{}", "ab".repeat(31))).is_err());
+        assert_eq!(
+            parse_h256(&format!("0x{}", "ab".repeat(32))).unwrap(),
+            H256::repeat_byte(0xab)
+        );
+    }
 }
