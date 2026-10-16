@@ -3470,9 +3470,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                249u8, 161u8, 89u8, 74u8, 1u8, 14u8, 159u8, 166u8, 211u8, 7u8, 253u8, 134u8, 185u8,
-                223u8, 185u8, 52u8, 172u8, 53u8, 185u8, 13u8, 53u8, 134u8, 81u8, 131u8, 148u8,
-                237u8, 200u8, 62u8, 243u8, 209u8, 59u8, 82u8,
+                241u8, 92u8, 239u8, 125u8, 203u8, 219u8, 120u8, 242u8, 125u8, 40u8, 113u8, 112u8,
+                83u8, 48u8, 58u8, 205u8, 117u8, 82u8, 134u8, 50u8, 213u8, 28u8, 81u8, 239u8, 244u8,
+                121u8, 55u8, 38u8, 45u8, 130u8, 99u8, 209u8,
             ]
     }
     pub mod system {
@@ -18548,7 +18548,9 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = " Maximum chunk size for challenge responses (e.g., 256 KiB)."]
+                #[doc = " Maximum chunk size for challenge responses. Must equal"]
+                #[doc = " `storage_primitives::DEFAULT_CHUNK_SIZE`, which `respond_to_challenge`"]
+                #[doc = " uses to derive the chunk count from `data_size`."]
                 pub fn max_chunk_size(
                     &self,
                 ) -> ::subxt::constants::StaticAddress<::core::primitive::u32> {
@@ -21386,10 +21388,9 @@ pub mod api {
                         "Revive",
                         "EthBlockBuilderIR",
                         [
-                            173u8, 154u8, 41u8, 124u8, 73u8, 225u8, 191u8, 98u8, 141u8, 133u8,
-                            22u8, 189u8, 135u8, 118u8, 105u8, 95u8, 64u8, 185u8, 176u8, 192u8,
-                            107u8, 19u8, 184u8, 107u8, 19u8, 210u8, 238u8, 23u8, 205u8, 186u8,
-                            111u8, 53u8,
+                            236u8, 235u8, 223u8, 44u8, 84u8, 95u8, 150u8, 213u8, 79u8, 74u8, 232u8,
+                            179u8, 84u8, 119u8, 75u8, 198u8, 85u8, 189u8, 149u8, 106u8, 183u8,
+                            219u8, 111u8, 8u8, 29u8, 154u8, 125u8, 84u8, 29u8, 208u8, 77u8, 155u8,
                         ],
                     )
                 }
