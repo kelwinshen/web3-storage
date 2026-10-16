@@ -1636,7 +1636,8 @@ impl<T: Config> Pallet<T> {
     /// 
     /// Creates a new canonical state (new `Commitment`).
     /// Requires at least min_providers signatures from providers in bucket.primary_providers.
-    /// For frozen buckets: start_seq must equal frozen_start_seq (only leaf_count can increase).
+    /// For frozen buckets: start_seq must equal frozen_start_seq (only leaf_count can increase;
+    /// `SnapshotViolatesFrozen` otherwise).
     /// Never moves the bucket backwards (`SnapshotNotForward`): with the same start the end
     /// must be past the current end; after a deletion (later start) the end must not be
     /// before it. See "Checkpoints only move forward".
