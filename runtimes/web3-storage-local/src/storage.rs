@@ -33,9 +33,7 @@ parameter_types! {
     pub const MinStakePerByte: Balance = 1_000;
     /// Must be `> ChallengeTimeout` so any challenge opened up to the
     /// announcement block matures (provider stays slashable) before the
-    /// provider can withdraw stake, and `> RequestTimeout` so a
-    /// pre-deregistration agreement quote expires before re-registration (the
-    /// re-register replay defense). Both are checked in `integrity_test`.
+    /// provider can withdraw stake. Checked in `integrity_test`.
     /// Value: the 48h challenge window plus a 6h grace.
     pub const DeregisterAnnouncementPeriod: BlockNumber = 54 * RC_HOURS;
     /// Caps the challenges sharing one deadline (relay block); bounds the
@@ -92,7 +90,7 @@ impl pallet_storage_provider::Config for Runtime {
     type MaxMembers = ConstU32<100>;
     type MaxPrimaryProviders = ConstU32<5>;
     type MinProviderStake = MinProviderStake;
-    type MaxChunkSize = ConstU32<262144>; // 256 KiB
+    type MaxChunkSize = ConstU32<{ storage_primitives::DEFAULT_CHUNK_SIZE }>;
     type ChallengeTimeout = ChallengeTimeout;
     type ChallengeDeposit = ChallengeDeposit;
     type SettlementTimeout = SettlementTimeout;
