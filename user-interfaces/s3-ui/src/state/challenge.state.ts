@@ -201,12 +201,14 @@ export async function cancelChallenge(
   const client = getS3Client();
   await client.cancelChallenge(challengeId);
 
-  const key = watchKey(challengeId.deadline, provider);
-  stopPolling(key);
-  stopEventWatch(key);
+  // The watcher key is (deadline, provider) only: stop it just when the
+  // cancelled challenge is the one being watched.
   const current = activeChallenge$.getValue();
   if (current && current.challengeId.deadline === challengeId.deadline
       && current.challengeId.index === challengeId.index) {
+    const key = watchKey(challengeId.deadline, provider);
+    stopPolling(key);
+    stopEventWatch(key);
     activeChallenge$.next(null);
     challengeStatus$.next("idle");
   }
