@@ -123,7 +123,7 @@ bucket://42/fs/my_website/logo.png    mutable: path in the latest snapshot</code
       <li><code>challenge_checkpoint</code>: against the on-chain snapshot. Use it on buckets with infrequent writes. It fails if a new checkpoint no longer lists the provider.</li>
       <li><code>challenge_replica</code>: against the root a replica confirmed on-chain.</li>
     </ul>
-    <p>You lock a deposit that covers the provider's response cost. The provider has <code>ChallengeTimeout</code> (48 hours) to respond. If it does not, anyone can call <code>resolve_expired_challenge</code> (free on success) to slash it. An invalid response is rejected and the challenge stays open. <code>Superseded</code> is a defense for primary providers only; a replica answers with <code>Proof</code> or <code>Deleted</code>. See <a href="#costs">Costs</a> for who pays.</p>
+    <p>You lock a deposit that covers the provider's response cost. The provider has <code>ChallengeTimeout</code> (48 hours) to respond. If it does not, anyone can call <code>resolve_expired_challenge</code> (free on success) to slash it. An invalid response is rejected and the challenge stays open. <code>Superseded</code> and <code>Deleted</code> are defenses for primary providers only; a replica answers with <code>Proof</code>. See <a href="#costs">Costs</a> for who pays.</p>
     <p class="see">Diagrams: <a href="12-challenge-protocol.html">12 Challenge protocol</a>, <a href="13-challenge-sequence.html">13 Challenge, response and slash</a></p>
   </li>
   <li>

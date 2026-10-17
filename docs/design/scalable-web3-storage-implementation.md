@@ -1679,9 +1679,10 @@ impl<T: Config> Pallet<T> {
     // - Uses the replica's on-chain sync confirmation (last_synced_root)
     // - No signature needed - chain already has their commitment
     // - Replicas are liable for roots they've confirmed synced to
-    // - `Superseded` is not a defense for a replica: it covers MMR forks, and
-    //   a replica syncs only to snapshots. A challenged replica answers with
-    //   `Proof` or `Deleted`
+    // - `Superseded` and `Deleted` are not defenses for a replica: they cover
+    //   commitments that canonical history moved past, and a replica is
+    //   liable for exactly the root it confirmed. A replica challenge targets
+    //   a leaf of that commitment, so a challenged replica answers with `Proof`
     //
     // For hot buckets, challenge_checkpoint may fail due to race conditions,
     // but this is acceptable: active writers have signatures and can use
@@ -1858,10 +1859,11 @@ impl<T: Config> Pallet<T> {
     /// 
     /// Must provide the challenged chunk with Merkle proofs, or prove the data
     /// was legitimately deleted (newer commitment with higher start_seq), or
-    /// show the challenged state has been superseded by canonical (primary
-    /// providers only). An invalid response is rejected (`InvalidProof`,
-    /// `InvalidDeletionClaim`, `InvalidSupersededClaim`) and the challenge
-    /// stays open until the deadline.
+    /// show the challenged state has been superseded by canonical (`Deleted`
+    /// and `Superseded`: primary providers only). An invalid response is
+    /// rejected (`InvalidProof`, `InvalidDeletionClaim`,
+    /// `InvalidSupersededClaim`) and the challenge stays open until the
+    /// deadline.
     /// 
     /// Parameters:
     /// - `challenge_id`: The challenge to respond to (deadline + index)
@@ -1915,6 +1917,7 @@ pub enum ChallengeResponse<T: Config> {
     /// Admin signature proves the admin authorized the deletion (new MMR excludes the challenged data).
     /// Only admins can delete data (by increasing start_seq), so the signature must be from an admin.
     /// Provider signature not needed - they're submitting this response.
+    /// Primary providers only; a replica gets `InvalidDeletionClaim`.
     Deleted {
         new_mmr_root: H256,
         new_start_seq: u64,
@@ -2544,7 +2547,7 @@ pub struct MmrProof {
     └─ Challenger obtains the chunk via the on-chain proof (full on-chain
        cost applies—a last-resort recovery path, not a cheap bulk channel)
 
-3b. Provider responds with deletion proof
+3b. Provider responds with deletion proof (primary providers only)
     └─ Shows newer admin-signed commitment with start_seq > challenged seq
     └─ Challenge rejected (data was legitimately deleted)
     └─ Treated as a valid response: provider's fee reimbursed as in 3a,
@@ -2604,6 +2607,15 @@ fn verify_challenge_response(
             // regardless of freeze state. Off-chain is "messy but functional."
             //
             // `admin` must be a bucket admin (dispatch error otherwise, see above).
+
+            // Replicas: never valid (see the `challenge_replica` notes).
+            let Some(agreement) = StorageAgreements::get(challenge.bucket_id, &challenge.provider)
+            else {
+                return Err(Error::InvalidDeletionClaim);
+            };
+            if matches!(agreement.role, ProviderRole::Replica { .. }) {
+                return Err(Error::InvalidDeletionClaim);
+            }
 
             // The purge must actually cover the challenged leaf.
             if challenged_seq >= *new_start_seq {
