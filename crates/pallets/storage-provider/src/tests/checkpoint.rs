@@ -240,8 +240,9 @@ fn checkpoint_accepts_deletion_that_keeps_the_end() {
             checkpoint_range(0xCC, 12, 2),
             Error::<Test>::SnapshotNotForward
         );
-        // Deleting every leaf leaves an empty range that ends at 15.
-        assert_ok!(checkpoint_range(0xDD, 15, 0));
+        // Deleting every leaf leaves an empty range that ends at 15. An empty
+        // MMR has the zero root.
+        assert_ok!(checkpoint_range(0x00, 15, 0));
     });
 }
 
