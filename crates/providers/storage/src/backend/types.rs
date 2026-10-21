@@ -130,6 +130,7 @@ impl ChunkTreeNode {
 mod tests {
     use super::*;
     use codec::DecodeAll;
+    use storage_primitives::LEAF_VERSION;
 
     /// Pins the exact bytes these records encode to. A failure here means
     /// existing provider databases can no longer be decoded - bump
@@ -163,6 +164,7 @@ mod tests {
                     mmr_root: H256::repeat_byte(0xab),
                     start_seq: 7,
                     leaves: vec![MmrLeaf {
+                        leaf_version: LEAF_VERSION,
                         data_root: H256::repeat_byte(0xcd),
                         data_size: 111,
                         total_size: 222,
@@ -177,7 +179,9 @@ mod tests {
                     "0700000000000000",
                     // leaves: Vec<MmrLeaf>, compact length 1
                     "04",
-                    // leaves[0]: data_root (0xcd * 32), data_size = 111, total_size = 222
+                    // leaves[0]: leaf_version = 1, data_root (0xcd * 32), data_size = 111,
+                    // total_size = 222
+                    "01",
                     "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
                     "6f00000000000000",
                     "de00000000000000",
@@ -223,11 +227,14 @@ mod tests {
             // layout change breaks on-chain MMR root reproducibility too.
             assert_golden(
                 MmrLeaf {
+                    leaf_version: LEAF_VERSION,
                     data_root: H256::repeat_byte(0xcd),
                     data_size: 111,
                     total_size: 222,
                 },
                 concat!(
+                    // leaf_version: u8 = 1
+                    "01",
                     // data_root: H256 (0xcd * 32)
                     "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
                     // data_size: u64 = 111 (little-endian)
@@ -262,6 +269,7 @@ mod tests {
     fn bucket_state_leaf_count_tracks_leaves() {
         let mut bucket = BucketState::new(1_000);
         bucket.leaves.push(MmrLeaf {
+            leaf_version: LEAF_VERSION,
             data_root: H256::repeat_byte(0xcd),
             data_size: 111,
             total_size: 222,

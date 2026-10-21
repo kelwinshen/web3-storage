@@ -8,6 +8,7 @@ import {
   DEFAULT_CHUNK_SIZE,
   hashChildren,
   hashLeaf,
+  LEAF_VERSION,
   toHex,
 } from "@web3-storage/core";
 import type { ParachainApi } from "./address.js";
@@ -185,7 +186,12 @@ describe("fetchChallengeProof", () => {
   const api = {
     query: { StorageProvider: { Challenges: { getValue } } },
   } as unknown as ParachainApi;
-  const leaf = { data_root: toHex(new Uint8Array(32).fill(1)), data_size: 5, total_size: 5 };
+  const leaf = {
+    leaf_version: LEAF_VERSION,
+    data_root: toHex(new Uint8Array(32).fill(1)),
+    data_size: 5,
+    total_size: 5,
+  };
   const item = toHex(new Uint8Array(32).fill(2));
   const chunkProof = {
     chunk_data: bytesToBase64(enc.encode("chunk")),
@@ -199,7 +205,10 @@ describe("fetchChallengeProof", () => {
     const proof = await fetchChallengeProof(api, PROVIDER, challengeId);
     expect(proof).toEqual({
       chunk_data: enc.encode("chunk"),
-      mmr_proof: { leaf: { data_root: leaf.data_root, data_size: 5n, total_size: 5n }, items: [item] },
+      mmr_proof: {
+        leaf: { ...leaf, data_size: 5n, total_size: 5n },
+        items: [item],
+      },
       chunk_proof: [item],
     });
     expect(getValue).toHaveBeenCalledWith(10, 0, expect.anything());
@@ -217,6 +226,15 @@ describe("fetchChallengeProof", () => {
     const fetchMock = stubFetch(() => ({ leaf, peaks: [item], leaf_proof: { siblings: [] } }));
     await expect(fetchChallengeProof(api, PROVIDER, challengeId)).rejects.toThrow(
       "the provider node is older than this client",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws for an /mmr_proof leaf without leaf_version, before /chunk_proof", async () => {
+    const { leaf_version: _, ...oldLeaf } = leaf;
+    const fetchMock = stubFetch(() => ({ leaf: oldLeaf, items: [item] }));
+    await expect(fetchChallengeProof(api, PROVIDER, challengeId)).rejects.toThrow(
+      "leaf has no `leaf_version`",
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
