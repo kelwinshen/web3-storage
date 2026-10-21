@@ -750,6 +750,14 @@ pub mod pallet {
             /// the chunk up to `mmr_proof.leaf.data_root`.
             chunk_proof: Vec<H256>,
         },
+        /// The challenged `chunk_index` is at or beyond the leaf's chunk count,
+        /// so the leaf has no such chunk. Valid when the proof is for the
+        /// challenged `leaf_index` and the leaf's chunk count (from
+        /// `data_size` and `leaf_version`) is at most the index.
+        ChunkOutOfRange {
+            /// Proves the leaf is part of the committed MMR.
+            mmr_proof: MmrProof,
+        },
         /// Data was deleted - show newer commitment without this seq.
         Deleted {
             /// Root of the newer commitment that no longer holds the
@@ -1207,9 +1215,9 @@ pub mod pallet {
         ChallengeNotExpired,
         /// Only the challenged provider may respond.
         NotChallengeProvider,
-        /// The chunk or MMR proof does not verify, or the leaf's `leaf_version`
-        /// is unknown. The challenge stays open; respond again before the
-        /// deadline.
+        /// The chunk or MMR proof does not verify, the leaf's `leaf_version` is
+        /// unknown, or a `ChunkOutOfRange` response names a chunk the leaf has.
+        /// The challenge stays open; respond again before the deadline.
         InvalidProof,
         /// `new_start_seq` does not cover the challenged leaf, or the admin
         /// signature does not verify. The challenge stays open.
@@ -2673,8 +2681,9 @@ pub mod pallet {
         }
 
         /// Challenged provider only. Answer before the deadline with a chunk
-        /// proof, a proof that the data was legitimately deleted, or a note
-        /// that the challenged state has been superseded.
+        /// proof, a proof that the leaf has no chunk at the challenged index, a
+        /// proof that the data was legitimately deleted, or a note that the
+        /// challenged state has been superseded.
         ///
         /// A valid response settles the deposit between challenger and
         /// provider. An invalid one is rejected (`InvalidProof`,
@@ -2684,6 +2693,9 @@ pub mod pallet {
         #[pallet::call_index(41)]
         #[pallet::weight(match response {
             ChallengeResponse::Proof { .. } => T::WeightInfo::respond_to_challenge_proof(),
+            ChallengeResponse::ChunkOutOfRange { .. } => {
+                T::WeightInfo::respond_to_challenge_chunk_out_of_range()
+            }
             ChallengeResponse::Deleted { .. } => T::WeightInfo::respond_to_challenge_deleted(),
             ChallengeResponse::Superseded => T::WeightInfo::respond_to_challenge_superseded(),
         })]
@@ -2718,24 +2730,23 @@ pub mod pallet {
                     mmr_proof,
                     chunk_proof,
                 } => {
-                    let chunk_count = mmr_proof
-                        .leaf
-                        .chunk_count()
-                        .ok_or(Error::<T>::InvalidProof)?;
-                    let chunk_hash = storage_primitives::hash_leaf(&chunk_data);
+                    let (data_root, chunk_count) =
+                        Self::verify_challenged_leaf(&challenge, mmr_proof)?;
                     let chunk_ok = storage_primitives::verify_merkle_proof(
-                        chunk_hash,
+                        storage_primitives::hash_leaf(&chunk_data),
                         challenge.target.chunk_index,
                         chunk_count,
                         &chunk_proof,
-                        &mmr_proof.leaf.data_root,
+                        &data_root,
                     );
-                    let mmr_ok = storage_primitives::verify_mmr_proof(
-                        mmr_proof,
-                        challenge.target.leaf_index,
-                        &challenge.commitment,
+                    ensure!(chunk_ok, Error::<T>::InvalidProof);
+                }
+                ChallengeResponse::ChunkOutOfRange { mmr_proof } => {
+                    let (_, chunk_count) = Self::verify_challenged_leaf(&challenge, mmr_proof)?;
+                    ensure!(
+                        challenge.target.chunk_index >= chunk_count,
+                        Error::<T>::InvalidProof
                     );
-                    ensure!(chunk_ok && mmr_ok, Error::<T>::InvalidProof);
                 }
                 ChallengeResponse::Deleted {
                     new_mmr_root,

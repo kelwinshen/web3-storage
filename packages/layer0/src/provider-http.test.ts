@@ -181,7 +181,7 @@ describe("fetchChallengeProof", () => {
   const challengeId = { deadline: 10, index: 0 };
   const getValue = vi.fn(async () => ({
     bucket_id: 1n,
-    target: { leaf_index: 2n, chunk_index: 3n },
+    target: { leaf_index: 2n, chunk_index: 0n },
   }));
   const api = {
     query: { StorageProvider: { Challenges: { getValue } } },
@@ -202,14 +202,17 @@ describe("fetchChallengeProof", () => {
     const fetchMock = stubFetch((url) =>
       url.pathname === "/mmr_proof" ? { leaf, items: [item] } : chunkProof,
     );
-    const proof = await fetchChallengeProof(api, PROVIDER, challengeId);
-    expect(proof).toEqual({
-      chunk_data: enc.encode("chunk"),
-      mmr_proof: {
-        leaf: { ...leaf, data_size: 5n, total_size: 5n },
-        items: [item],
+    const response = await fetchChallengeProof(api, PROVIDER, challengeId);
+    expect(response).toEqual({
+      type: "Proof",
+      value: {
+        chunk_data: enc.encode("chunk"),
+        mmr_proof: {
+          leaf: { ...leaf, data_size: 5n, total_size: 5n },
+          items: [item],
+        },
+        chunk_proof: [item],
       },
-      chunk_proof: [item],
     });
     expect(getValue).toHaveBeenCalledWith(10, 0, expect.anything());
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -219,7 +222,23 @@ describe("fetchChallengeProof", () => {
     expect(mmrUrl.searchParams.get("leaf_index")).toBe("2");
     expect(chunkUrl.pathname).toBe("/chunk_proof");
     expect(chunkUrl.searchParams.get("data_root")).toBe(leaf.data_root);
-    expect(chunkUrl.searchParams.get("chunk_index")).toBe("3");
+    expect(chunkUrl.searchParams.get("chunk_index")).toBe("0");
+  });
+
+  it("answers a chunk index past the leaf's last chunk with ChunkOutOfRange, without /chunk_proof", async () => {
+    getValue.mockResolvedValueOnce({ bucket_id: 1n, target: { leaf_index: 2n, chunk_index: 1n } });
+    const fetchMock = stubFetch(() => ({ leaf, items: [item] }));
+    const response = await fetchChallengeProof(api, PROVIDER, challengeId);
+    expect(response).toEqual({
+      type: "ChunkOutOfRange",
+      value: {
+        mmr_proof: {
+          leaf: { ...leaf, data_size: 5n, total_size: 5n },
+          items: [item],
+        },
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("throws for an /mmr_proof response without items, before /chunk_proof", async () => {
