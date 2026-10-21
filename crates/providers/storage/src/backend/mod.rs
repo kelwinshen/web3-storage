@@ -181,7 +181,7 @@ pub trait StorageBackend: Send + Sync {
 
     /// Byte size of the data under `root`. Fails with `NonCanonicalTree` unless
     /// `root` is `merkle_root` over chunks of `DEFAULT_CHUNK_SIZE` bytes, except
-    /// the last, which can be shorter but not empty when there are several.
+    /// the last, which has 1 to `DEFAULT_CHUNK_SIZE` bytes.
     fn canonical_data_size(&self, root: H256) -> Result<u64, Error> {
         let (chunk_hashes, chunk_sizes): (Vec<H256>, Vec<usize>) =
             self.collect_leaves(root).into_iter().unzip();
@@ -189,9 +189,7 @@ pub trait StorageBackend: Send + Sync {
         let fixed_sizes = match chunk_sizes.split_last() {
             None => false,
             Some((last, rest)) => {
-                rest.iter().all(|size| *size == chunk_size)
-                    && *last <= chunk_size
-                    && (rest.is_empty() || *last > 0)
+                rest.iter().all(|size| *size == chunk_size) && (1..=chunk_size).contains(last)
             }
         };
         if !fixed_sizes || merkle_root(&chunk_hashes) != root {
@@ -295,12 +293,16 @@ fn proven_chunks<B: StorageBackend + ?Sized>(
 }
 
 /// Store the internal nodes of `storage_primitives::merkle_tree` over `leaves`
-/// and return the root. Returns the first `store_node` error.
+/// and return the root. Fails with `EmptyData` for no leaves, and otherwise
+/// returns the first `store_node` error.
 pub fn build_merkle_tree(
     storage: &dyn StorageBackend,
     bucket_id: BucketId,
     leaves: &[H256],
 ) -> Result<H256, Error> {
+    if leaves.is_empty() {
+        return Err(Error::EmptyData);
+    }
     let (root, nodes) = merkle_tree(leaves);
     for node in nodes {
         storage.store_node(
@@ -346,7 +348,7 @@ mod tests {
 
     #[test]
     fn stored_tree_root_matches_merkle_root() {
-        for n in [0, 1, 2, 3, 5, 8] {
+        for n in [1, 2, 3, 5, 8] {
             let (_dir, storage, leaves) = storage_with_chunks(1024 * 1024, &chunks(n));
             assert_eq!(
                 build_merkle_tree(&storage, 1, &leaves).unwrap(),
@@ -395,6 +397,13 @@ mod tests {
                 chunk_count: 5
             })
         ));
+    }
+
+    #[test]
+    fn build_merkle_tree_rejects_no_leaves() {
+        let (_dir, storage, _) = storage_with_chunks(1024, &[]);
+        let err = build_merkle_tree(&storage, 1, &[]).unwrap_err();
+        assert!(matches!(err, Error::EmptyData), "got {err:?}");
     }
 
     #[test]

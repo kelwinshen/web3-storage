@@ -82,7 +82,8 @@ impl StorageUserClient {
     /// 4. Return the data root hash
     ///
     /// Returns [`ClientError::Config`] before any request if a
-    /// [`ChunkingStrategy::Fixed`] size is 0 or above `DEFAULT_CHUNK_SIZE`.
+    /// [`ChunkingStrategy::Fixed`] size is 0 or above `DEFAULT_CHUNK_SIZE`,
+    /// or if the data to upload is empty: empty data has no chunk tree.
     ///
     /// # Example
     /// ```no_run
@@ -121,6 +122,11 @@ impl StorageUserClient {
         } else {
             data
         };
+        if upload_data.is_empty() {
+            return Err(ClientError::Config(
+                "empty data has no chunk tree".to_string(),
+            ));
+        }
 
         // Chunk the data
         let chunks = Self::chunk_data(upload_data, strategy);
@@ -540,11 +546,6 @@ impl StorageUserClient {
         bucket_id: BucketId,
         leaf_hashes: &[H256],
     ) -> ClientResult<H256> {
-        if leaf_hashes.is_empty() {
-            return Err(ClientError::Api(
-                "Cannot build Merkle tree with no leaves".to_string(),
-            ));
-        }
         let (root, nodes) = storage_primitives::merkle_tree(leaf_hashes);
         for node in nodes {
             self.upload_node(

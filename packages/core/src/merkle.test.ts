@@ -133,11 +133,11 @@ describe("merkleRoot", () => {
 });
 
 describe("leafChunkCount", () => {
-  it("rounds up with the chunk size of the leaf version and has a minimum of one", () => {
+  it("rounds up with the chunk size of the leaf version and is zero for empty data", () => {
     const chunk = DEFAULT_CHUNK_SIZE;
     const count = (data_size: number | bigint) =>
       leafChunkCount({ leaf_version: LEAF_VERSION, data_size });
-    expect(count(0)).toBe(1);
+    expect(count(0)).toBe(0);
     expect(count(1)).toBe(1);
     expect(count(chunk)).toBe(1);
     expect(count(BigInt(chunk + 1))).toBe(2);
@@ -160,8 +160,8 @@ describe("leafChunkCount", () => {
 });
 
 describe("computeDataRoot", () => {
-  it("empty file hashes a single empty chunk", () => {
-    expect(toHex(computeDataRoot(new Uint8Array(0)))).toBe(toHex(hashLeaf(new Uint8Array(0))));
+  it("empty data has no chunk tree", () => {
+    expect(() => computeDataRoot(new Uint8Array(0))).toThrow("empty data has no chunk tree");
   });
 
   it("single sub-chunk file → its own chunk hash", () => {
