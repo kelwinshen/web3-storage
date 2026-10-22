@@ -256,6 +256,30 @@ fn insert_challenge<T: Config>(
     storage_primitives::ChallengeId { deadline, index: 0 }
 }
 
+/// The largest MMR proof `verify_mmr_proof` accepts, for `leaf` at index 0 of
+/// an MMR with `u64::MAX / 2` leaves: 63 peaks, the leaf in the height-62
+/// peak, so 62 siblings and one item for the bagged peaks to its right. The
+/// proof is synthetic: the returned commitment's root is computed from it, so
+/// verification succeeds without 2^63 leaves.
+fn worst_case_mmr_proof(
+    leaf: storage_primitives::MmrLeaf,
+) -> (Commitment, storage_primitives::MmrProof) {
+    let leaf_hash = storage_primitives::hash_leaf(&codec::Encode::encode(&leaf));
+    let mut items: alloc::vec::Vec<H256> = (1..=62u8).map(H256::repeat_byte).collect();
+    let mut peak = leaf_hash;
+    for sibling in &items {
+        peak = storage_primitives::hash_children(peak, *sibling);
+    }
+    let right_peaks = H256::repeat_byte(0xFF);
+    items.push(right_peaks);
+    let commitment = Commitment {
+        mmr_root: storage_primitives::bag_peaks(&[peak, right_peaks]),
+        start_seq: 0,
+        leaf_count: u64::MAX / 2,
+    };
+    (commitment, storage_primitives::MmrProof { leaf, items })
+}
+
 /// Register an sr25519 keypair for a provider and return the public key.
 ///
 /// Overwrites the provider's stored public_key so `verify_signature` uses the
@@ -959,9 +983,8 @@ mod benchmarks {
         );
     }
 
-    /// `Proof` response — hashes MaxChunkSize bytes and verifies MMR + Merkle proofs.
-    /// Uses a worst-case MMR proof (max 64 peaks, 63-level climb) so the flat weight
-    /// bounds the deepest verification, not just the single-leaf case.
+    /// `Proof` response — hashes MaxChunkSize bytes and verifies MMR + Merkle proofs
+    /// in their worst case, so the flat weight bounds every verification.
     #[benchmark]
     fn respond_to_challenge_proof() {
         let admin = funded_account::<T>("admin", 0);
@@ -971,18 +994,21 @@ mod benchmarks {
         // Chunk tree: the largest `data_size` gives the most chunks, and chunk 0
         // of that tree has a sibling at every level, so the chunk proof has the
         // most siblings the pallet accepts.
-        //
-        // MMR: leaf_count = u64::MAX has 64 peaks and leaf 0 is in the tallest
-        // peak (height 63), so the verifier climbs 63 siblings and bags 64 peaks.
-        // The proof is synthetic: the climbed peak and the bagged root are
-        // computed so `verify_mmr_proof` returns true without 2^64 leaves.
         let chunk_size = T::MaxChunkSize::get() as usize;
         let chunk_bytes = alloc::vec![0xBEu8; chunk_size];
         let chunk_data: BoundedVec<u8, T::MaxChunkSize> =
             BoundedVec::try_from(chunk_bytes.clone()).unwrap();
 
         let data_size = u64::MAX;
-        let depth = storage_primitives::chunk_count(data_size).ilog2();
+        // The chunk count comes from the leaf, as in `respond_to_challenge`;
+        // it does not depend on `data_root`.
+        let size_only = storage_primitives::MmrLeaf {
+            leaf_version: storage_primitives::LEAF_VERSION,
+            data_root: H256::zero(),
+            data_size,
+            total_size: data_size,
+        };
+        let depth = size_only.chunk_count().unwrap().ilog2();
         let siblings: alloc::vec::Vec<H256> = (0..depth)
             .map(|level| H256::from_low_u64_be(u64::from(level) + 1))
             .collect();
@@ -990,60 +1016,19 @@ mod benchmarks {
             storage_primitives::hash_leaf(&chunk_bytes),
             |node, sibling| storage_primitives::hash_children(node, *sibling),
         );
-
-        let mmr_leaf = storage_primitives::MmrLeaf {
+        let (commitment, mmr_proof) = worst_case_mmr_proof(storage_primitives::MmrLeaf {
             data_root,
-            data_size,
-            total_size: data_size,
-        };
-        let leaf_hash = storage_primitives::hash_leaf(&codec::Encode::encode(&mmr_leaf));
-
-        let leaf_count = u64::MAX; // 64 peaks; challenged leaf 0 lives in the height-63 peak
-        let leaf_index = 0u64;
-        let height = 63u32;
-
-        // Climb 63 levels to the tallest peak (local_index 0 => every step is a left child).
-        let mmr_siblings: alloc::vec::Vec<H256> = (0..height)
-            .map(|k| H256::repeat_byte((k + 1) as u8))
-            .collect();
-        let mmr_path = alloc::vec![false; height as usize];
-        let mut peak0 = leaf_hash;
-        for sibling in &mmr_siblings {
-            peak0 = storage_primitives::hash_children(peak0, *sibling);
-        }
-
-        // 64 peaks total: the climbed peak first (peak_index 0) plus 63 fillers; the
-        // root is their bag, so verify's peak-count / peak-position / bag checks pass.
-        let mut peaks = alloc::vec![peak0];
-        for i in 1..leaf_count.count_ones() {
-            peaks.push(H256::repeat_byte((0x80 + i) as u8));
-        }
-        let mmr_root = storage_primitives::bag_peaks(&peaks);
-
-        let mmr_proof = storage_primitives::MmrProof {
-            peaks,
-            leaf: mmr_leaf,
-            leaf_proof: storage_primitives::MerkleProof {
-                siblings: mmr_siblings,
-                path: mmr_path,
-            },
-        };
-        let chunk_proof = storage_primitives::MerkleProof {
-            path: alloc::vec![false; siblings.len()],
-            siblings,
-        };
+            ..size_only
+        });
+        let chunk_proof = siblings;
 
         let challenge_id = insert_challenge::<T>(
             bucket_id,
             &provider,
             &admin,
-            Commitment {
-                mmr_root,
-                start_seq: 0,
-                leaf_count,
-            },
+            commitment,
             ChunkLocation {
-                leaf_index,
+                leaf_index: 0,
                 chunk_index: 0,
             },
         );
@@ -1053,6 +1038,39 @@ mod benchmarks {
             mmr_proof,
             chunk_proof,
         };
+
+        #[extrinsic_call]
+        respond_to_challenge(RawOrigin::Signed(provider), challenge_id, response);
+    }
+
+    /// `ChunkOutOfRange` response — verifies the worst-case MMR proof for a
+    /// `chunk_index` at the leaf's chunk count.
+    #[benchmark]
+    fn respond_to_challenge_chunk_out_of_range() {
+        let admin = funded_account::<T>("admin", 0);
+        let provider = create_provider::<T>(0);
+        let bucket_id = setup_primary_agreement::<T>(&admin, &provider, 0);
+
+        let leaf = storage_primitives::MmrLeaf {
+            leaf_version: storage_primitives::LEAF_VERSION,
+            data_root: H256::repeat_byte(0xAA),
+            data_size: 1,
+            total_size: 1,
+        };
+        let chunk_index = leaf.chunk_count().unwrap();
+        let (commitment, mmr_proof) = worst_case_mmr_proof(leaf);
+        let challenge_id = insert_challenge::<T>(
+            bucket_id,
+            &provider,
+            &admin,
+            commitment,
+            ChunkLocation {
+                leaf_index: 0,
+                chunk_index,
+            },
+        );
+        let response: pallet::ChallengeResponse<T> =
+            pallet::ChallengeResponse::ChunkOutOfRange { mmr_proof };
 
         #[extrinsic_call]
         respond_to_challenge(RawOrigin::Signed(provider), challenge_id, response);

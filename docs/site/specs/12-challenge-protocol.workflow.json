@@ -324,6 +324,7 @@
       "title": "Responses and rejections",
       "items": [
         "Proof: chunk in leaf, leaf at the challenged leaf_index in the committed MMR; else InvalidProof",
+        "ChunkOutOfRange: leaf at the challenged leaf_index in the committed MMR with chunk_index >= ceil(data_size / CHUNK_SIZE); else InvalidProof",
         "Deleted (primary providers only): admin-signed commitment with new_start_seq above the challenged leaf; a replica, or no such commitment, gets InvalidDeletionClaim",
         "Superseded (primary providers only): a newer canonical snapshot covers the leaf; a replica, or no such snapshot, gets InvalidSupersededClaim",
         "A rejected response costs the provider its tx fee; the challenge stays open until the deadline",
