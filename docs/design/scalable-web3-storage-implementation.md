@@ -1686,7 +1686,8 @@ impl<T: Config> Pallet<T> {
     // - `Superseded` and `Deleted` are not defenses for a replica: they cover
     //   commitments that canonical history moved past, and a replica is
     //   liable for exactly the root it confirmed. A replica challenge targets
-    //   a leaf of that commitment, so a challenged replica answers with `Proof`
+    //   a leaf of that commitment, so a challenged replica answers with `Proof`,
+    //   or `ChunkOutOfRange` when the chunk index is past the leaf's last chunk
     //
     // For hot buckets, challenge_checkpoint may fail due to race conditions,
     // but this is acceptable: active writers have signatures and can use
