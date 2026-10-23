@@ -87,6 +87,7 @@ pub trait WeightInfo {
 	fn respond_to_challenge_proof() -> Weight;
 	fn respond_to_challenge_deleted() -> Weight;
 	fn respond_to_challenge_superseded() -> Weight;
+	fn respond_to_challenge_chunk_out_of_range() -> Weight;
 	fn cancel_challenge() -> Weight;
 	fn confirm_replica_sync() -> Weight;
 	fn top_up_replica_sync_balance() -> Weight;
@@ -742,6 +743,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(97_423_000, 6196)
 			.saturating_add(T::DbWeight::get().reads(11_u64))
 			.saturating_add(T::DbWeight::get().writes(6_u64))
+	}
+	// TODO: needs re-benchmarking
+	fn respond_to_challenge_chunk_out_of_range() -> Weight {
+		Self::respond_to_challenge_proof()
 	}
 	/// Storage: `StorageProvider::Challenges` (r:1 w:1)
 	/// Storage: `StorageProvider::PendingChallenges` (r:1 w:1)
@@ -1468,6 +1473,10 @@ impl WeightInfo for () {
 		Weight::from_parts(97_423_000, 6196)
 			.saturating_add(RocksDbWeight::get().reads(11_u64))
 			.saturating_add(RocksDbWeight::get().writes(6_u64))
+	}
+	// TODO: needs re-benchmarking
+	fn respond_to_challenge_chunk_out_of_range() -> Weight {
+		Self::respond_to_challenge_proof()
 	}
 	/// Storage: `StorageProvider::Challenges` (r:1 w:1)
 	/// Storage: `StorageProvider::PendingChallenges` (r:1 w:1)

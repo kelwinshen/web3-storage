@@ -72,6 +72,9 @@ pub async fn fs_put_file(
     validate_fs_path(&path)?;
 
     let data = body.to_vec();
+    if data.is_empty() {
+        return Err(Error::EmptyBody);
+    }
     let size = data.len() as u64;
 
     // Initialize bucket if needed
@@ -79,15 +82,10 @@ pub async fn fs_put_file(
 
     // 1. Split into chunks (256 KiB)
     let chunk_size = storage_primitives::DEFAULT_CHUNK_SIZE as usize;
-    let chunks: Vec<&[u8]> = if data.is_empty() {
-        vec![&[]]
-    } else {
-        data.chunks(chunk_size).collect()
-    };
 
     // 2. Hash and store each chunk
-    let chunk_hashes: Vec<H256> = chunks
-        .iter()
+    let chunk_hashes: Vec<H256> = data
+        .chunks(chunk_size)
         .map(|chunk| {
             let hash = hash_leaf(chunk);
             state
@@ -129,7 +127,7 @@ pub async fn fs_put_file(
     state.fs_index.put_file(bucket_id, path, meta);
 
     Ok(Json(PutFileResponse {
-        data_root: format!("0x{}", hex::encode(data_root.as_bytes())),
+        data_root,
         size,
         leaf_index,
     }))
@@ -273,7 +271,7 @@ pub async fn fs_index_root(
 
     Ok(Json(FsIndexRootResponse {
         bucket_id,
-        metadata_merkle_root: format!("0x{}", hex::encode(root.as_bytes())),
+        metadata_merkle_root: root,
         file_count,
         dir_count,
         total_size,
@@ -286,7 +284,7 @@ pub async fn fs_index_root(
 
 #[derive(Debug, Serialize)]
 pub struct PutFileResponse {
-    pub data_root: String,
+    pub data_root: H256,
     pub size: u64,
     pub leaf_index: u64,
 }
@@ -323,7 +321,7 @@ pub struct ListDirResponse {
 #[derive(Debug, Serialize)]
 pub struct FsIndexRootResponse {
     pub bucket_id: BucketId,
-    pub metadata_merkle_root: String,
+    pub metadata_merkle_root: H256,
     pub file_count: u64,
     pub dir_count: u64,
     pub total_size: u64,

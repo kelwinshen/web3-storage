@@ -140,17 +140,6 @@ impl BaseClient {
             .map(|s| s.as_str())
             .ok_or_else(|| ClientError::Config("No provider URLs configured".to_string()))
     }
-
-    /// Helper to decode hex strings.
-    pub(crate) fn hex_decode(s: &str) -> Result<Vec<u8>, ClientError> {
-        let s = s.strip_prefix("0x").unwrap_or(s);
-        hex::decode(s).map_err(|e| ClientError::Serialization(format!("Invalid hex: {e}")))
-    }
-
-    /// Helper to encode to hex strings.
-    pub(crate) fn hex_encode(data: &[u8]) -> String {
-        format!("0x{}", hex::encode(data))
-    }
 }
 
 // Common API types used across clients
@@ -194,8 +183,8 @@ pub struct AgreementInfo {
 #[derive(Debug, Clone, Copy)]
 pub enum ChunkingStrategy {
     /// Fixed-size chunks (default: `DEFAULT_CHUNK_SIZE`). The provider commits
-    /// only chunks of `DEFAULT_CHUNK_SIZE` bytes, except a shorter last chunk,
-    /// which is empty only when it is the only chunk. Use `DEFAULT_CHUNK_SIZE`.
+    /// only chunks of `DEFAULT_CHUNK_SIZE` bytes, except a last chunk of 1 to
+    /// `DEFAULT_CHUNK_SIZE` bytes. Use `DEFAULT_CHUNK_SIZE`.
     Fixed(usize),
     /// TODO: Content-defined chunking (not yet implemented)
     ///
