@@ -3467,9 +3467,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                8u8, 176u8, 191u8, 64u8, 229u8, 93u8, 91u8, 58u8, 39u8, 251u8, 47u8, 115u8, 173u8,
-                57u8, 79u8, 155u8, 144u8, 188u8, 126u8, 213u8, 98u8, 101u8, 195u8, 1u8, 254u8,
-                175u8, 47u8, 212u8, 44u8, 16u8, 42u8, 17u8,
+                100u8, 91u8, 42u8, 192u8, 116u8, 81u8, 128u8, 146u8, 176u8, 234u8, 117u8, 253u8,
+                188u8, 101u8, 242u8, 92u8, 17u8, 168u8, 137u8, 246u8, 12u8, 98u8, 116u8, 59u8,
+                176u8, 88u8, 225u8, 87u8, 85u8, 16u8, 30u8, 43u8,
             ]
     }
     pub mod system {
@@ -15461,7 +15461,8 @@ pub mod api {
             #[doc = ""]
             #[doc = "Parameters:"]
             #[doc = "- `min_providers`: primary-provider signatures each checkpoint"]
-            #[doc = "  needs. At most `MaxPrimaryProviders` (`InvalidMinProviders`)."]
+            #[doc = "  needs. At least 1 and at most `MaxPrimaryProviders`"]
+            #[doc = "  (`InvalidMinProviders`)."]
             #[doc = "  Changeable later with [`Pallet::set_min_providers`]."]
             #[doc = "- `visibility`: who may read the bucket (see [`Visibility`])."]
             pub struct CreateBucket {
@@ -15584,7 +15585,8 @@ pub mod api {
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Admin only. Set how many primary-provider signatures a checkpoint"]
-            #[doc = "needs. Cannot exceed the bucket's primary provider count."]
+            #[doc = "needs. At least 1 and at most the bucket's primary provider count,"]
+            #[doc = "so a bucket with no primaries needs one added first."]
             pub struct SetMinProviders {
                 pub bucket_id: set_min_providers::BucketId,
                 pub min_providers: set_min_providers::MinProviders,
@@ -15615,7 +15617,7 @@ pub mod api {
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Admin only. Make the bucket append-only from its current snapshot"]
             #[doc = "on. Irreversible; the snapshot must already carry `min_providers`"]
-            #[doc = "signatures."]
+            #[doc = "signatures, and at least one."]
             pub struct FreezeBucket {
                 pub bucket_id: freeze_bucket::BucketId,
             }
@@ -15744,6 +15746,9 @@ pub mod api {
             #[doc = "Anyone can call this to clean up slashed providers."]
             #[doc = "The provider must have zero stake (indicating they were slashed)."]
             #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+            #[doc = "Fails with `AgreementHasPendingChallenge` while a challenge against"]
+            #[doc = "this provider on this bucket is open: the agreement is kept until"]
+            #[doc = "every challenge on it is resolved."]
             pub struct RemoveSlashed {
                 pub bucket_id: remove_slashed::BucketId,
                 pub provider: remove_slashed::Provider,
@@ -16011,7 +16016,8 @@ pub mod api {
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Writer or admin. Make a provider-signed commitment the bucket's"]
             #[doc = "canonical state. Needs valid signatures from at least"]
-            #[doc = "`min_providers` of the bucket's primary providers; a frozen bucket"]
+            #[doc = "`min_providers` of the bucket's primary providers, and at least"]
+            #[doc = "one; a frozen bucket"]
             #[doc = "only accepts commitments that keep its `frozen_start_seq`."]
             pub struct Checkpoint {
                 pub bucket_id: checkpoint::BucketId,
@@ -16195,7 +16201,9 @@ pub mod api {
             #[doc = "Challenged provider only. Answer before the deadline with a chunk"]
             #[doc = "proof, a proof that the leaf has no chunk at the challenged index, a"]
             #[doc = "proof that the data was legitimately deleted, or a note that the"]
-            #[doc = "challenged state has been superseded."]
+            #[doc = "challenged state has been superseded (`Deleted` and `Superseded`:"]
+            #[doc = "primary providers only; a replica is liable for exactly the root"]
+            #[doc = "it confirmed)."]
             #[doc = ""]
             #[doc = "A valid response settles the deposit between challenger and"]
             #[doc = "provider. An invalid one is rejected (`InvalidProof`,"]
@@ -16273,7 +16281,8 @@ pub mod api {
             #[doc = "the replica holds the bucket at one of them. If a root matches the"]
             #[doc = "current snapshot or recent history, the replica is paid"]
             #[doc = "`sync_price` from its sync balance. Rate-limited by"]
-            #[doc = "`min_sync_interval`."]
+            #[doc = "`min_sync_interval`. Fails with `AgreementExpired` once the anchor"]
+            #[doc = "block reaches the agreement's `expires_at`."]
             pub struct ConfirmReplicaSync {
                 pub bucket_id: confirm_replica_sync::BucketId,
                 pub roots: confirm_replica_sync::Roots,
@@ -16531,7 +16540,8 @@ pub mod api {
                     #[doc = ""]
                     #[doc = "Parameters:"]
                     #[doc = "- `min_providers`: primary-provider signatures each checkpoint"]
-                    #[doc = "  needs. At most `MaxPrimaryProviders` (`InvalidMinProviders`)."]
+                    #[doc = "  needs. At least 1 and at most `MaxPrimaryProviders`"]
+                    #[doc = "  (`InvalidMinProviders`)."]
                     #[doc = "  Changeable later with [`Pallet::set_min_providers`]."]
                     #[doc = "- `visibility`: who may read the bucket (see [`Visibility`])."]
                     pub fn create_bucket(
@@ -16625,7 +16635,8 @@ pub mod api {
                         )
                     }
                     #[doc = "Admin only. Set how many primary-provider signatures a checkpoint"]
-                    #[doc = "needs. Cannot exceed the bucket's primary provider count."]
+                    #[doc = "needs. At least 1 and at most the bucket's primary provider count,"]
+                    #[doc = "so a bucket with no primaries needs one added first."]
                     pub fn set_min_providers(
                         &self,
                         bucket_id: super::set_min_providers::BucketId,
@@ -16649,7 +16660,7 @@ pub mod api {
                     }
                     #[doc = "Admin only. Make the bucket append-only from its current snapshot"]
                     #[doc = "on. Irreversible; the snapshot must already carry `min_providers`"]
-                    #[doc = "signatures."]
+                    #[doc = "signatures, and at least one."]
                     pub fn freeze_bucket(
                         &self,
                         bucket_id: super::freeze_bucket::BucketId,
@@ -16745,6 +16756,9 @@ pub mod api {
                     #[doc = "Anyone can call this to clean up slashed providers."]
                     #[doc = "The provider must have zero stake (indicating they were slashed)."]
                     #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+                    #[doc = "Fails with `AgreementHasPendingChallenge` while a challenge against"]
+                    #[doc = "this provider on this bucket is open: the agreement is kept until"]
+                    #[doc = "every challenge on it is resolved."]
                     pub fn remove_slashed(
                         &self,
                         bucket_id: super::remove_slashed::BucketId,
@@ -16957,7 +16971,8 @@ pub mod api {
                     }
                     #[doc = "Writer or admin. Make a provider-signed commitment the bucket's"]
                     #[doc = "canonical state. Needs valid signatures from at least"]
-                    #[doc = "`min_providers` of the bucket's primary providers; a frozen bucket"]
+                    #[doc = "`min_providers` of the bucket's primary providers, and at least"]
+                    #[doc = "one; a frozen bucket"]
                     #[doc = "only accepts commitments that keep its `frozen_start_seq`."]
                     pub fn checkpoint(
                         &self,
@@ -17098,7 +17113,9 @@ pub mod api {
                     #[doc = "Challenged provider only. Answer before the deadline with a chunk"]
                     #[doc = "proof, a proof that the leaf has no chunk at the challenged index, a"]
                     #[doc = "proof that the data was legitimately deleted, or a note that the"]
-                    #[doc = "challenged state has been superseded."]
+                    #[doc = "challenged state has been superseded (`Deleted` and `Superseded`:"]
+                    #[doc = "primary providers only; a replica is liable for exactly the root"]
+                    #[doc = "it confirmed)."]
                     #[doc = ""]
                     #[doc = "A valid response settles the deposit between challenger and"]
                     #[doc = "provider. An invalid one is rejected (`InvalidProof`,"]
@@ -17157,7 +17174,8 @@ pub mod api {
                     #[doc = "the replica holds the bucket at one of them. If a root matches the"]
                     #[doc = "current snapshot or recent history, the replica is paid"]
                     #[doc = "`sync_price` from its sync balance. Rate-limited by"]
-                    #[doc = "`min_sync_interval`."]
+                    #[doc = "`min_sync_interval`. Fails with `AgreementExpired` once the anchor"]
+                    #[doc = "block reaches the agreement's `expires_at`."]
                     pub fn confirm_replica_sync(
                         &self,
                         bucket_id: super::confirm_replica_sync::BucketId,
@@ -18322,7 +18340,8 @@ pub mod api {
                 #[doc = " Number of unresolved challenges outstanding against a specific"]
                 #[doc = " `(bucket, provider)` pair. Maintained in lockstep with"]
                 #[doc = " [`PendingChallenges`] and gates that bucket's agreement teardown"]
-                #[doc = " (`end_agreement`, `claim_expired_agreement`, `cleanup_bucket_internal`)."]
+                #[doc = " (`end_agreement`, `claim_expired_agreement`, `cleanup_bucket_internal`,"]
+                #[doc = " `remove_slashed`)."]
                 pub fn pending_challenges_by_bucket(
                     &self,
                 ) -> ::subxt::storage::StaticAddress<
@@ -21378,9 +21397,10 @@ pub mod api {
                         "Revive",
                         "EthBlockBuilderIR",
                         [
-                            62u8, 22u8, 204u8, 180u8, 89u8, 208u8, 118u8, 104u8, 70u8, 79u8, 254u8,
-                            35u8, 81u8, 30u8, 181u8, 91u8, 139u8, 0u8, 140u8, 81u8, 45u8, 123u8,
-                            181u8, 158u8, 118u8, 82u8, 95u8, 24u8, 133u8, 117u8, 33u8, 133u8,
+                            185u8, 136u8, 40u8, 73u8, 145u8, 160u8, 168u8, 252u8, 131u8, 110u8,
+                            170u8, 189u8, 43u8, 167u8, 206u8, 3u8, 196u8, 34u8, 176u8, 226u8,
+                            152u8, 23u8, 16u8, 243u8, 190u8, 134u8, 47u8, 100u8, 65u8, 29u8, 136u8,
+                            115u8,
                         ],
                     )
                 }
@@ -26231,7 +26251,8 @@ pub mod api {
                     #[doc = ""]
                     #[doc = "Parameters:"]
                     #[doc = "- `min_providers`: primary-provider signatures each checkpoint"]
-                    #[doc = "  needs. At most `MaxPrimaryProviders` (`InvalidMinProviders`)."]
+                    #[doc = "  needs. At least 1 and at most `MaxPrimaryProviders`"]
+                    #[doc = "  (`InvalidMinProviders`)."]
                     #[doc = "  Changeable later with [`Pallet::set_min_providers`]."]
                     #[doc = "- `visibility`: who may read the bucket (see [`Visibility`])."]
                     create_bucket {
@@ -26281,7 +26302,8 @@ pub mod api {
                     },
                     #[codec(index = 11)]
                     #[doc = "Admin only. Set how many primary-provider signatures a checkpoint"]
-                    #[doc = "needs. Cannot exceed the bucket's primary provider count."]
+                    #[doc = "needs. At least 1 and at most the bucket's primary provider count,"]
+                    #[doc = "so a bucket with no primaries needs one added first."]
                     set_min_providers {
                         bucket_id: ::core::primitive::u64,
                         min_providers: ::core::primitive::u32,
@@ -26289,7 +26311,7 @@ pub mod api {
                     #[codec(index = 12)]
                     #[doc = "Admin only. Make the bucket append-only from its current snapshot"]
                     #[doc = "on. Irreversible; the snapshot must already carry `min_providers`"]
-                    #[doc = "signatures."]
+                    #[doc = "signatures, and at least one."]
                     freeze_bucket { bucket_id: ::core::primitive::u64 },
                     #[codec(index = 16)]
                     #[doc = "Set bucket read visibility (admin only)."]
@@ -26324,6 +26346,9 @@ pub mod api {
                     #[doc = "Anyone can call this to clean up slashed providers."]
                     #[doc = "The provider must have zero stake (indicating they were slashed)."]
                     #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+                    #[doc = "Fails with `AgreementHasPendingChallenge` while a challenge against"]
+                    #[doc = "this provider on this bucket is open: the agreement is kept until"]
+                    #[doc = "every challenge on it is resolved."]
                     remove_slashed {
                         bucket_id: ::core::primitive::u64,
                         provider: ::subxt::utils::AccountId32,
@@ -26421,7 +26446,8 @@ pub mod api {
                     #[codec(index = 30)]
                     #[doc = "Writer or admin. Make a provider-signed commitment the bucket's"]
                     #[doc = "canonical state. Needs valid signatures from at least"]
-                    #[doc = "`min_providers` of the bucket's primary providers; a frozen bucket"]
+                    #[doc = "`min_providers` of the bucket's primary providers, and at least"]
+                    #[doc = "one; a frozen bucket"]
                     #[doc = "only accepts commitments that keep its `frozen_start_seq`."]
                     checkpoint {
                         bucket_id: ::core::primitive::u64,
@@ -26483,7 +26509,9 @@ pub mod api {
                     #[doc = "Challenged provider only. Answer before the deadline with a chunk"]
                     #[doc = "proof, a proof that the leaf has no chunk at the challenged index, a"]
                     #[doc = "proof that the data was legitimately deleted, or a note that the"]
-                    #[doc = "challenged state has been superseded."]
+                    #[doc = "challenged state has been superseded (`Deleted` and `Superseded`:"]
+                    #[doc = "primary providers only; a replica is liable for exactly the root"]
+                    #[doc = "it confirmed)."]
                     #[doc = ""]
                     #[doc = "A valid response settles the deposit between challenger and"]
                     #[doc = "provider. An invalid one is rejected (`InvalidProof`,"]
@@ -26515,7 +26543,8 @@ pub mod api {
                     #[doc = "the replica holds the bucket at one of them. If a root matches the"]
                     #[doc = "current snapshot or recent history, the replica is paid"]
                     #[doc = "`sync_price` from its sync balance. Rate-limited by"]
-                    #[doc = "`min_sync_interval`."]
+                    #[doc = "`min_sync_interval`. Fails with `AgreementExpired` once the anchor"]
+                    #[doc = "block reaches the agreement's `expires_at`."]
                     confirm_replica_sync {
                         bucket_id: ::core::primitive::u64,
                         roots: [::core::option::Option<::subxt::utils::H256>; 7usize],
@@ -26680,13 +26709,14 @@ pub mod api {
                     MaxPrimaryProvidersReached,
                     #[codec(index = 25)]
                     #[doc = "The current snapshot carries fewer provider signatures than the"]
-                    #[doc = "bucket's `min_providers`."]
+                    #[doc = "bucket's `min_providers`, or none."]
                     MinProvidersNotMet,
                     #[codec(index = 26)]
-                    #[doc = "A `min_providers` value the bucket cannot satisfy: above"]
+                    #[doc = "A `min_providers` value the pallet does not accept: zero, above"]
                     #[doc = "`MaxPrimaryProviders` at creation, or above the bucket's current"]
-                    #[doc = "primary count in `set_min_providers`. Pass a smaller number, or"]
-                    #[doc = "add primaries first."]
+                    #[doc = "primary count in `set_min_providers`. Pass a value from 1 to the"]
+                    #[doc = "current primary count; to require more signatures, add primaries"]
+                    #[doc = "first."]
                     InvalidMinProviders,
                     #[codec(index = 27)]
                     #[doc = "Only members and primary-agreement owners may challenge a primary"]
@@ -26771,12 +26801,14 @@ pub mod api {
                     #[doc = "The challenge stays open; respond again before the deadline."]
                     InvalidProof,
                     #[codec(index = 50)]
-                    #[doc = "`new_start_seq` does not cover the challenged leaf, or the admin"]
-                    #[doc = "signature does not verify. The challenge stays open."]
+                    #[doc = "`new_start_seq` does not cover the challenged leaf, the admin"]
+                    #[doc = "signature does not verify, or the responder is a replica"]
+                    #[doc = "(`Deleted` is a primary-only defense). The challenge stays open."]
                     InvalidDeletionClaim,
                     #[codec(index = 51)]
                     #[doc = "No canonical snapshot replaces the challenged root and covers the"]
-                    #[doc = "challenged leaf. The challenge stays open."]
+                    #[doc = "challenged leaf, or the responder is a replica (`Superseded` is a"]
+                    #[doc = "primary-only defense). The challenge stays open."]
                     InvalidSupersededClaim,
                     #[codec(index = 52)]
                     #[doc = "The provider did not sign the bucket's current snapshot, so there"]
@@ -26812,7 +26844,8 @@ pub mod api {
                     #[doc = "`frozen_start_seq`."]
                     SnapshotViolatesFrozen,
                     #[codec(index = 60)]
-                    #[doc = "Fewer valid provider signatures than the bucket's `min_providers`."]
+                    #[doc = "Fewer valid provider signatures than the bucket's `min_providers`,"]
+                    #[doc = "or none."]
                     InsufficientSignatures,
                     #[codec(index = 61)]
                     #[doc = "A balance or counter computation overflowed."]
