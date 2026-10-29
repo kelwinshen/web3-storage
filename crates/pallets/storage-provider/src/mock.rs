@@ -4,8 +4,10 @@
 
 use crate as pallet_storage_provider;
 use frame_support::{
-    derive_impl,
-    traits::{ConstU16, ConstU32, ConstU64, Hooks},
+    derive_impl, parameter_types,
+    traits::{
+        fungible::HoldConsideration, ConstU16, ConstU32, ConstU64, Hooks, LinearStoragePrice,
+    },
 };
 use sp_core::{Get, H256};
 use sp_runtime::{
@@ -76,7 +78,9 @@ impl frame_support::traits::Get<u64> for TestTreasury {
     }
 }
 
-frame_support::parameter_types! {
+parameter_types! {
+    pub const StorageDepositReason: RuntimeHoldReason =
+        RuntimeHoldReason::StorageProvider(pallet_storage_provider::HoldReason::StorageDeposit);
     /// A static so a test can change it while a challenge is open.
     pub static ChallengeTimeout: u64 = 100;
 }
@@ -85,6 +89,13 @@ impl pallet_storage_provider::Config for Test {
     type Currency = Balances;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Treasury = TestTreasury;
+    // Every record costs exactly 10, so hold assertions in tests are exact.
+    type StorageDeposit = HoldConsideration<
+        u64,
+        Balances,
+        StorageDepositReason,
+        LinearStoragePrice<ConstU64<10>, ConstU64<0>, u64>,
+    >;
     type MinStakePerByte = ConstU64<1>; // 1 unit per byte
     type MaxMultiaddrLength = ConstU32<128>;
     type MaxMembers = ConstU32<100>;
@@ -140,9 +151,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 /// Build test externalities with custom balances and genesis providers.
-pub fn new_test_ext_with_genesis_providers(
+pub fn new_test_ext_with_genesis(
     balances: Vec<(u64, u64)>,
     providers: Vec<crate::GenesisProvider<Test>>,
+    buckets: Vec<(u64, u32)>,
 ) -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
@@ -155,12 +167,9 @@ pub fn new_test_ext_with_genesis_providers(
     .assimilate_storage(&mut t)
     .unwrap();
 
-    pallet_storage_provider::GenesisConfig::<Test> {
-        buckets: vec![],
-        providers,
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
+    pallet_storage_provider::GenesisConfig::<Test> { buckets, providers }
+        .assimilate_storage(&mut t)
+        .unwrap();
 
     t.into()
 }
