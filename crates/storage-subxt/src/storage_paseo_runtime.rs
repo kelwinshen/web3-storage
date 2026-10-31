@@ -1338,9 +1338,9 @@ pub mod api {
                         "bucket_info",
                         (bucket_id,),
                         [
-                            144u8, 7u8, 105u8, 242u8, 113u8, 125u8, 110u8, 159u8, 92u8, 249u8,
-                            124u8, 10u8, 216u8, 9u8, 168u8, 4u8, 49u8, 28u8, 247u8, 196u8, 95u8,
-                            129u8, 60u8, 118u8, 192u8, 75u8, 119u8, 23u8, 104u8, 31u8, 13u8, 138u8,
+                            138u8, 167u8, 78u8, 223u8, 164u8, 214u8, 92u8, 21u8, 210u8, 210u8,
+                            102u8, 200u8, 2u8, 242u8, 194u8, 123u8, 23u8, 136u8, 165u8, 3u8, 13u8,
+                            52u8, 238u8, 55u8, 230u8, 100u8, 103u8, 193u8, 232u8, 5u8, 158u8, 68u8,
                         ],
                     )
                 }
@@ -2085,10 +2085,9 @@ pub mod api {
                         "dry_run_call",
                         (origin, call, result_xcms_version),
                         [
-                            194u8, 218u8, 237u8, 146u8, 53u8, 79u8, 140u8, 38u8, 35u8, 205u8,
-                            127u8, 101u8, 225u8, 118u8, 127u8, 235u8, 165u8, 42u8, 30u8, 5u8,
-                            132u8, 81u8, 101u8, 60u8, 130u8, 37u8, 1u8, 31u8, 104u8, 127u8, 66u8,
-                            4u8,
+                            98u8, 37u8, 237u8, 32u8, 180u8, 43u8, 84u8, 181u8, 105u8, 37u8, 96u8,
+                            208u8, 191u8, 75u8, 243u8, 22u8, 227u8, 215u8, 40u8, 125u8, 6u8, 173u8,
+                            20u8, 22u8, 132u8, 120u8, 150u8, 150u8, 63u8, 206u8, 66u8, 154u8,
                         ],
                     )
                 }
@@ -2106,9 +2105,9 @@ pub mod api {
                         "dry_run_xcm",
                         (origin_location, xcm),
                         [
-                            255u8, 196u8, 221u8, 21u8, 131u8, 164u8, 7u8, 72u8, 76u8, 74u8, 79u8,
-                            234u8, 244u8, 93u8, 5u8, 29u8, 68u8, 208u8, 148u8, 251u8, 2u8, 51u8,
-                            224u8, 110u8, 139u8, 86u8, 32u8, 177u8, 100u8, 125u8, 131u8, 76u8,
+                            34u8, 55u8, 20u8, 50u8, 129u8, 244u8, 204u8, 43u8, 17u8, 159u8, 251u8,
+                            210u8, 232u8, 66u8, 102u8, 60u8, 200u8, 63u8, 231u8, 138u8, 56u8, 35u8,
+                            243u8, 218u8, 227u8, 16u8, 186u8, 92u8, 57u8, 147u8, 217u8, 139u8,
                         ],
                     )
                 }
@@ -3467,9 +3466,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                100u8, 70u8, 91u8, 131u8, 236u8, 117u8, 89u8, 188u8, 34u8, 108u8, 208u8, 101u8,
-                145u8, 54u8, 64u8, 90u8, 150u8, 70u8, 62u8, 220u8, 195u8, 96u8, 152u8, 237u8,
-                108u8, 15u8, 135u8, 184u8, 119u8, 37u8, 156u8, 239u8,
+                99u8, 221u8, 18u8, 148u8, 122u8, 132u8, 138u8, 113u8, 34u8, 242u8, 194u8, 27u8,
+                16u8, 169u8, 56u8, 22u8, 238u8, 61u8, 197u8, 158u8, 126u8, 88u8, 219u8, 190u8,
+                56u8, 151u8, 245u8, 245u8, 43u8, 155u8, 252u8, 2u8,
             ]
     }
     pub mod system {
@@ -4457,10 +4456,9 @@ pub mod api {
                         "System",
                         "Events",
                         [
-                            234u8, 129u8, 159u8, 213u8, 128u8, 124u8, 50u8, 61u8, 51u8, 151u8,
-                            108u8, 255u8, 152u8, 233u8, 145u8, 52u8, 203u8, 28u8, 91u8, 239u8,
-                            176u8, 218u8, 99u8, 46u8, 253u8, 40u8, 209u8, 101u8, 62u8, 46u8, 168u8,
-                            130u8,
+                            131u8, 88u8, 5u8, 67u8, 4u8, 162u8, 170u8, 55u8, 38u8, 119u8, 26u8,
+                            42u8, 108u8, 43u8, 189u8, 108u8, 0u8, 145u8, 223u8, 98u8, 103u8, 117u8,
+                            86u8, 236u8, 48u8, 34u8, 216u8, 124u8, 60u8, 183u8, 247u8, 67u8,
                         ],
                     )
                 }
@@ -7936,9 +7934,9 @@ pub mod api {
                         "Balances",
                         "Holds",
                         [
-                            232u8, 126u8, 57u8, 85u8, 2u8, 239u8, 78u8, 34u8, 186u8, 38u8, 131u8,
-                            96u8, 99u8, 241u8, 38u8, 215u8, 43u8, 189u8, 69u8, 25u8, 27u8, 38u8,
-                            205u8, 186u8, 233u8, 34u8, 200u8, 142u8, 20u8, 141u8, 241u8, 231u8,
+                            226u8, 61u8, 213u8, 129u8, 245u8, 67u8, 17u8, 223u8, 88u8, 2u8, 11u8,
+                            19u8, 222u8, 172u8, 142u8, 48u8, 32u8, 37u8, 16u8, 173u8, 95u8, 137u8,
+                            148u8, 7u8, 244u8, 15u8, 154u8, 248u8, 110u8, 206u8, 216u8, 46u8,
                         ],
                     )
                 }
@@ -8458,10 +8456,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                204u8, 63u8, 188u8, 223u8, 215u8, 148u8, 131u8, 200u8, 135u8,
-                                252u8, 161u8, 222u8, 45u8, 221u8, 141u8, 100u8, 252u8, 241u8, 2u8,
-                                135u8, 241u8, 181u8, 176u8, 145u8, 176u8, 62u8, 12u8, 61u8, 80u8,
-                                236u8, 251u8, 240u8,
+                                100u8, 136u8, 18u8, 244u8, 84u8, 175u8, 88u8, 69u8, 59u8, 72u8,
+                                214u8, 145u8, 114u8, 159u8, 243u8, 55u8, 222u8, 241u8, 193u8,
+                                216u8, 187u8, 94u8, 226u8, 227u8, 112u8, 247u8, 83u8, 120u8, 112u8,
+                                73u8, 20u8, 23u8,
                             ],
                         )
                     }
@@ -8484,10 +8482,10 @@ pub mod api {
                                 weight,
                             },
                             [
-                                219u8, 189u8, 34u8, 125u8, 94u8, 194u8, 21u8, 60u8, 71u8, 193u8,
-                                73u8, 51u8, 217u8, 73u8, 68u8, 90u8, 251u8, 231u8, 240u8, 176u8,
-                                68u8, 245u8, 84u8, 7u8, 215u8, 104u8, 116u8, 8u8, 138u8, 205u8,
-                                77u8, 143u8,
+                                110u8, 20u8, 15u8, 72u8, 243u8, 243u8, 254u8, 43u8, 205u8, 71u8,
+                                36u8, 157u8, 145u8, 193u8, 90u8, 52u8, 181u8, 57u8, 207u8, 240u8,
+                                9u8, 84u8, 218u8, 189u8, 208u8, 243u8, 238u8, 209u8, 205u8, 85u8,
+                                137u8, 6u8,
                             ],
                         )
                     }
@@ -8526,10 +8524,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                226u8, 69u8, 19u8, 67u8, 191u8, 83u8, 20u8, 163u8, 107u8, 80u8,
-                                249u8, 223u8, 142u8, 194u8, 38u8, 155u8, 184u8, 230u8, 209u8, 94u8,
-                                55u8, 229u8, 132u8, 94u8, 14u8, 179u8, 236u8, 161u8, 180u8, 194u8,
-                                23u8, 11u8,
+                                5u8, 149u8, 185u8, 227u8, 184u8, 143u8, 206u8, 168u8, 44u8, 113u8,
+                                191u8, 94u8, 105u8, 49u8, 224u8, 225u8, 38u8, 230u8, 52u8, 250u8,
+                                46u8, 136u8, 156u8, 120u8, 246u8, 121u8, 213u8, 65u8, 142u8, 250u8,
+                                85u8, 188u8,
                             ],
                         )
                     }
@@ -14722,10 +14720,10 @@ pub mod api {
                             "batch",
                             super::Batch { calls },
                             [
-                                116u8, 211u8, 43u8, 88u8, 104u8, 6u8, 11u8, 208u8, 11u8, 175u8,
-                                252u8, 249u8, 120u8, 165u8, 138u8, 163u8, 71u8, 129u8, 161u8,
-                                148u8, 73u8, 7u8, 138u8, 62u8, 138u8, 243u8, 200u8, 157u8, 35u8,
-                                119u8, 208u8, 79u8,
+                                246u8, 143u8, 45u8, 209u8, 230u8, 229u8, 15u8, 46u8, 204u8, 148u8,
+                                126u8, 47u8, 175u8, 127u8, 233u8, 224u8, 30u8, 114u8, 223u8, 106u8,
+                                98u8, 62u8, 70u8, 186u8, 160u8, 66u8, 182u8, 103u8, 133u8, 192u8,
+                                68u8, 166u8,
                             ],
                         )
                     }
@@ -14756,10 +14754,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                217u8, 240u8, 168u8, 10u8, 172u8, 148u8, 15u8, 206u8, 29u8, 113u8,
-                                10u8, 59u8, 0u8, 70u8, 195u8, 162u8, 149u8, 14u8, 227u8, 19u8,
-                                164u8, 56u8, 204u8, 188u8, 224u8, 61u8, 109u8, 155u8, 140u8, 16u8,
-                                216u8, 110u8,
+                                180u8, 203u8, 108u8, 228u8, 209u8, 205u8, 56u8, 139u8, 84u8, 53u8,
+                                93u8, 47u8, 235u8, 129u8, 90u8, 86u8, 135u8, 255u8, 146u8, 148u8,
+                                60u8, 41u8, 144u8, 12u8, 114u8, 205u8, 180u8, 136u8, 80u8, 197u8,
+                                11u8, 26u8,
                             ],
                         )
                     }
@@ -14785,10 +14783,10 @@ pub mod api {
                             "batch_all",
                             super::BatchAll { calls },
                             [
-                                84u8, 123u8, 101u8, 92u8, 214u8, 111u8, 212u8, 164u8, 72u8, 235u8,
-                                124u8, 97u8, 3u8, 123u8, 19u8, 178u8, 199u8, 204u8, 222u8, 77u8,
-                                50u8, 101u8, 138u8, 34u8, 160u8, 201u8, 26u8, 29u8, 132u8, 210u8,
-                                167u8, 45u8,
+                                240u8, 178u8, 205u8, 169u8, 183u8, 240u8, 58u8, 193u8, 99u8, 5u8,
+                                79u8, 174u8, 227u8, 46u8, 221u8, 228u8, 157u8, 104u8, 11u8, 234u8,
+                                242u8, 74u8, 246u8, 107u8, 93u8, 81u8, 200u8, 214u8, 37u8, 16u8,
+                                60u8, 61u8,
                             ],
                         )
                     }
@@ -14812,10 +14810,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                237u8, 49u8, 24u8, 230u8, 23u8, 197u8, 161u8, 36u8, 111u8, 144u8,
-                                226u8, 184u8, 122u8, 80u8, 135u8, 212u8, 26u8, 220u8, 201u8, 76u8,
-                                136u8, 139u8, 229u8, 93u8, 212u8, 82u8, 46u8, 23u8, 95u8, 17u8,
-                                2u8, 243u8,
+                                235u8, 215u8, 167u8, 21u8, 201u8, 142u8, 8u8, 187u8, 16u8, 187u8,
+                                59u8, 35u8, 234u8, 136u8, 53u8, 7u8, 153u8, 170u8, 208u8, 161u8,
+                                67u8, 218u8, 23u8, 245u8, 231u8, 149u8, 11u8, 70u8, 45u8, 31u8,
+                                23u8, 137u8,
                             ],
                         )
                     }
@@ -14842,10 +14840,10 @@ pub mod api {
                             "force_batch",
                             super::ForceBatch { calls },
                             [
-                                131u8, 142u8, 164u8, 185u8, 231u8, 30u8, 126u8, 29u8, 121u8, 144u8,
-                                0u8, 44u8, 223u8, 251u8, 206u8, 235u8, 71u8, 27u8, 61u8, 31u8,
-                                220u8, 190u8, 153u8, 251u8, 38u8, 34u8, 165u8, 36u8, 251u8, 193u8,
-                                232u8, 205u8,
+                                125u8, 0u8, 164u8, 201u8, 245u8, 133u8, 70u8, 215u8, 162u8, 20u8,
+                                38u8, 53u8, 114u8, 207u8, 215u8, 195u8, 101u8, 115u8, 75u8, 217u8,
+                                190u8, 110u8, 15u8, 74u8, 171u8, 71u8, 127u8, 170u8, 64u8, 166u8,
+                                123u8, 54u8,
                             ],
                         )
                     }
@@ -14869,10 +14867,10 @@ pub mod api {
                                 weight,
                             },
                             [
-                                28u8, 102u8, 244u8, 16u8, 82u8, 246u8, 207u8, 7u8, 4u8, 123u8,
-                                34u8, 137u8, 26u8, 60u8, 4u8, 104u8, 170u8, 234u8, 43u8, 77u8,
-                                116u8, 5u8, 93u8, 194u8, 139u8, 115u8, 43u8, 186u8, 80u8, 234u8,
-                                107u8, 57u8,
+                                65u8, 160u8, 130u8, 134u8, 53u8, 192u8, 130u8, 251u8, 215u8, 1u8,
+                                147u8, 105u8, 21u8, 197u8, 167u8, 242u8, 96u8, 196u8, 46u8, 255u8,
+                                158u8, 166u8, 105u8, 218u8, 192u8, 56u8, 174u8, 182u8, 211u8, 16u8,
+                                53u8, 99u8,
                             ],
                         )
                     }
@@ -14912,10 +14910,10 @@ pub mod api {
                                 fallback: ::subxt::alloc::boxed::Box::new(fallback),
                             },
                             [
-                                73u8, 119u8, 87u8, 18u8, 56u8, 251u8, 133u8, 123u8, 194u8, 230u8,
-                                29u8, 126u8, 233u8, 147u8, 92u8, 19u8, 239u8, 162u8, 36u8, 197u8,
-                                106u8, 62u8, 36u8, 10u8, 82u8, 217u8, 69u8, 82u8, 144u8, 175u8,
-                                227u8, 121u8,
+                                191u8, 86u8, 217u8, 107u8, 142u8, 32u8, 110u8, 43u8, 9u8, 91u8,
+                                55u8, 218u8, 82u8, 52u8, 151u8, 238u8, 243u8, 189u8, 33u8, 7u8,
+                                188u8, 40u8, 166u8, 70u8, 3u8, 108u8, 192u8, 58u8, 196u8, 45u8,
+                                152u8, 96u8,
                             ],
                         )
                     }
@@ -14938,10 +14936,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                70u8, 60u8, 215u8, 196u8, 71u8, 154u8, 95u8, 50u8, 104u8, 204u8,
-                                213u8, 208u8, 187u8, 104u8, 254u8, 185u8, 189u8, 160u8, 183u8,
-                                197u8, 253u8, 103u8, 218u8, 61u8, 230u8, 2u8, 251u8, 60u8, 246u8,
-                                37u8, 145u8, 64u8,
+                                6u8, 221u8, 186u8, 54u8, 41u8, 122u8, 31u8, 229u8, 26u8, 12u8,
+                                207u8, 12u8, 168u8, 214u8, 41u8, 169u8, 237u8, 46u8, 178u8, 181u8,
+                                255u8, 178u8, 198u8, 236u8, 5u8, 130u8, 125u8, 176u8, 82u8, 65u8,
+                                143u8, 108u8,
                             ],
                         )
                     }
@@ -15493,6 +15491,37 @@ pub mod api {
             )]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            #[doc = "Admin only. Delete a bucket with no agreements (`BucketNotEmpty`)"]
+            #[doc = "and no open challenges (`BucketHasPendingChallenge`). Releases the"]
+            #[doc = "bucket deposit to its creator and each member deposit to the admin"]
+            #[doc = "that added the member, and removes the bucket from each member's"]
+            #[doc = "reverse index."]
+            pub struct DeleteBucket {
+                pub bucket_id: delete_bucket::BucketId,
+            }
+            pub mod delete_bucket {
+                use super::runtime_types;
+                pub type BucketId = ::core::primitive::u64;
+            }
+            impl DeleteBucket {
+                const PALLET_NAME: &'static str = "StorageProvider";
+                const CALL_NAME: &'static str = "delete_bucket";
+            }
+            impl ::subxt::extrinsics::DecodeAsExtrinsic for DeleteBucket {
+                fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
+                    pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
+                }
+            }
+            #[derive(
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Redeem provider-signed primary terms. Equivalent to"]
             #[doc = "[`Pallet::create_bucket`] followed by"]
             #[doc = "[`Pallet::add_primary_provider`], in one transaction."]
@@ -15678,9 +15707,10 @@ pub mod api {
             )]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Admin only. Add a member or change their role. An admin may step"]
-            #[doc = "down themselves but cannot demote another admin, and the last"]
-            #[doc = "admin cannot step down."]
+            #[doc = "Admin only. Add a member or change their role. Adding a member"]
+            #[doc = "holds a storage deposit on the caller; a role change holds nothing."]
+            #[doc = "An admin may step down themselves but cannot demote another admin,"]
+            #[doc = "and the last admin cannot step down."]
             pub struct SetMember {
                 pub bucket_id: set_member::BucketId,
                 pub member: set_member::Member,
@@ -15711,7 +15741,8 @@ pub mod api {
             )]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Admin only. Remove a member. Same admin protections as"]
+            #[doc = "Admin only. Remove a member and release the entry's storage"]
+            #[doc = "deposit to the admin that added them. Same admin protections as"]
             #[doc = "`set_member`."]
             pub struct RemoveMember {
                 pub bucket_id: remove_member::BucketId,
@@ -15745,7 +15776,10 @@ pub mod api {
             #[doc = ""]
             #[doc = "Anyone can call this to clean up slashed providers."]
             #[doc = "The provider must have zero stake (indicating they were slashed)."]
-            #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+            #[doc = "Returns the escrow to the agreement owner and the storage deposit"]
+            #[doc = "to its depositor, and removes the provider from the bucket. The"]
+            #[doc = "provider's own deposit is on its provider record and is released"]
+            #[doc = "by `complete_deregister`; slashing takes the stake only."]
             pub struct RemoveSlashed {
                 pub bucket_id: remove_slashed::BucketId,
                 pub provider: remove_slashed::Provider,
@@ -15927,6 +15961,10 @@ pub mod api {
             #[doc = "balance — moves to `new_owner` and stays on hold; every later"]
             #[doc = "settlement and refund uses the new owner."]
             #[doc = ""]
+            #[doc = "The agreement's storage deposit stays on the account that opened"]
+            #[doc = "the agreement until the agreement is removed; `new_owner` pays"]
+            #[doc = "nothing and decides when to settle."]
+            #[doc = ""]
             #[doc = "Bucket membership does not move: the new owner cannot write to or"]
             #[doc = "administer the bucket, and the bucket admin keeps every admin"]
             #[doc = "power over the agreement, including early termination, which pays"]
@@ -16051,7 +16089,10 @@ pub mod api {
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Writer or admin. Add signatures from primary providers that signed"]
-            #[doc = "the current snapshot late."]
+            #[doc = "the current snapshot late. A primary added after the checkpoint"]
+            #[doc = "becomes challengeable for this snapshot once its signature is added"]
+            #[doc = "here. Signers already in the bitfield are skipped without"]
+            #[doc = "verification."]
             pub struct ExtendCheckpoint {
                 pub bucket_id: extend_checkpoint::BucketId,
                 pub additional_signatures: extend_checkpoint::AdditionalSignatures,
@@ -16221,40 +16262,6 @@ pub mod api {
                 const CALL_NAME: &'static str = "respond_to_challenge";
             }
             impl ::subxt::extrinsics::DecodeAsExtrinsic for RespondToChallenge {
-                fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-                    pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-                }
-            }
-            #[derive(
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Challenger only. Withdraw a challenge before the provider has"]
-            #[doc = "responded: the challenge is removed and the deposit is released in"]
-            #[doc = "full. The provider's stats do not change."]
-            #[doc = ""]
-            #[doc = "Only valid up to the deadline, like `respond_to_challenge`. Past"]
-            #[doc = "it the provider can be slashed with `resolve_expired_challenge`"]
-            #[doc = "and cancelling is rejected (`ChallengeExpired`)."]
-            pub struct CancelChallenge {
-                pub challenge_id: cancel_challenge::ChallengeId,
-            }
-            pub mod cancel_challenge {
-                use super::runtime_types;
-                pub type ChallengeId =
-                    runtime_types::storage_primitives::ChallengeId<::core::primitive::u32>;
-            }
-            impl CancelChallenge {
-                const PALLET_NAME: &'static str = "StorageProvider";
-                const CALL_NAME: &'static str = "cancel_challenge";
-            }
-            impl ::subxt::extrinsics::DecodeAsExtrinsic for CancelChallenge {
                 fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
                     pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
                 }
@@ -16594,6 +16601,28 @@ pub mod api {
                             ],
                         )
                     }
+                    #[doc = "Admin only. Delete a bucket with no agreements (`BucketNotEmpty`)"]
+                    #[doc = "and no open challenges (`BucketHasPendingChallenge`). Releases the"]
+                    #[doc = "bucket deposit to its creator and each member deposit to the admin"]
+                    #[doc = "that added the member, and removes the bucket from each member's"]
+                    #[doc = "reverse index."]
+                    pub fn delete_bucket(
+                        &self,
+                        bucket_id: super::delete_bucket::BucketId,
+                    ) -> ::subxt::transactions::StaticPayload<super::DeleteBucket>
+                    {
+                        ::subxt::transactions::StaticPayload::new_static(
+                            "StorageProvider",
+                            "delete_bucket",
+                            super::DeleteBucket { bucket_id },
+                            [
+                                236u8, 111u8, 195u8, 13u8, 198u8, 155u8, 153u8, 85u8, 167u8, 76u8,
+                                174u8, 11u8, 143u8, 92u8, 161u8, 105u8, 87u8, 104u8, 182u8, 223u8,
+                                188u8, 81u8, 184u8, 71u8, 52u8, 80u8, 138u8, 234u8, 117u8, 206u8,
+                                183u8, 235u8,
+                            ],
+                        )
+                    }
                     #[doc = "Redeem provider-signed primary terms. Equivalent to"]
                     #[doc = "[`Pallet::create_bucket`] followed by"]
                     #[doc = "[`Pallet::add_primary_provider`], in one transaction."]
@@ -16734,9 +16763,10 @@ pub mod api {
                             ],
                         )
                     }
-                    #[doc = "Admin only. Add a member or change their role. An admin may step"]
-                    #[doc = "down themselves but cannot demote another admin, and the last"]
-                    #[doc = "admin cannot step down."]
+                    #[doc = "Admin only. Add a member or change their role. Adding a member"]
+                    #[doc = "holds a storage deposit on the caller; a role change holds nothing."]
+                    #[doc = "An admin may step down themselves but cannot demote another admin,"]
+                    #[doc = "and the last admin cannot step down."]
                     pub fn set_member(
                         &self,
                         bucket_id: super::set_member::BucketId,
@@ -16760,7 +16790,8 @@ pub mod api {
                             ],
                         )
                     }
-                    #[doc = "Admin only. Remove a member. Same admin protections as"]
+                    #[doc = "Admin only. Remove a member and release the entry's storage"]
+                    #[doc = "deposit to the admin that added them. Same admin protections as"]
                     #[doc = "`set_member`."]
                     pub fn remove_member(
                         &self,
@@ -16784,7 +16815,10 @@ pub mod api {
                     #[doc = ""]
                     #[doc = "Anyone can call this to clean up slashed providers."]
                     #[doc = "The provider must have zero stake (indicating they were slashed)."]
-                    #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+                    #[doc = "Returns the escrow to the agreement owner and the storage deposit"]
+                    #[doc = "to its depositor, and removes the provider from the bucket. The"]
+                    #[doc = "provider's own deposit is on its provider record and is released"]
+                    #[doc = "by `complete_deregister`; slashing takes the stake only."]
                     pub fn remove_slashed(
                         &self,
                         bucket_id: super::remove_slashed::BucketId,
@@ -16925,6 +16959,10 @@ pub mod api {
                     #[doc = "balance — moves to `new_owner` and stays on hold; every later"]
                     #[doc = "settlement and refund uses the new owner."]
                     #[doc = ""]
+                    #[doc = "The agreement's storage deposit stays on the account that opened"]
+                    #[doc = "the agreement until the agreement is removed; `new_owner` pays"]
+                    #[doc = "nothing and decides when to settle."]
+                    #[doc = ""]
                     #[doc = "Bucket membership does not move: the new owner cannot write to or"]
                     #[doc = "administer the bucket, and the bucket admin keeps every admin"]
                     #[doc = "power over the agreement, including early termination, which pays"]
@@ -17024,7 +17062,10 @@ pub mod api {
                         )
                     }
                     #[doc = "Writer or admin. Add signatures from primary providers that signed"]
-                    #[doc = "the current snapshot late."]
+                    #[doc = "the current snapshot late. A primary added after the checkpoint"]
+                    #[doc = "becomes challengeable for this snapshot once its signature is added"]
+                    #[doc = "here. Signers already in the bitfield are skipped without"]
+                    #[doc = "verification."]
                     pub fn extend_checkpoint(
                         &self,
                         bucket_id: super::extend_checkpoint::BucketId,
@@ -17164,30 +17205,6 @@ pub mod api {
                                 237u8, 37u8, 253u8, 45u8, 202u8, 99u8, 16u8, 188u8, 156u8, 22u8,
                                 214u8, 40u8, 51u8, 187u8, 87u8, 176u8, 105u8, 251u8, 164u8, 145u8,
                                 96u8, 86u8,
-                            ],
-                        )
-                    }
-                    #[doc = "Challenger only. Withdraw a challenge before the provider has"]
-                    #[doc = "responded: the challenge is removed and the deposit is released in"]
-                    #[doc = "full. The provider's stats do not change."]
-                    #[doc = ""]
-                    #[doc = "Only valid up to the deadline, like `respond_to_challenge`. Past"]
-                    #[doc = "it the provider can be slashed with `resolve_expired_challenge`"]
-                    #[doc = "and cancelling is rejected (`ChallengeExpired`)."]
-                    pub fn cancel_challenge(
-                        &self,
-                        challenge_id: super::cancel_challenge::ChallengeId,
-                    ) -> ::subxt::transactions::StaticPayload<super::CancelChallenge>
-                    {
-                        ::subxt::transactions::StaticPayload::new_static(
-                            "StorageProvider",
-                            "cancel_challenge",
-                            super::CancelChallenge { challenge_id },
-                            [
-                                224u8, 49u8, 86u8, 42u8, 107u8, 191u8, 125u8, 120u8, 47u8, 193u8,
-                                69u8, 164u8, 8u8, 35u8, 91u8, 165u8, 39u8, 105u8, 78u8, 131u8,
-                                46u8, 57u8, 43u8, 157u8, 6u8, 89u8, 239u8, 10u8, 185u8, 211u8,
-                                87u8, 116u8,
                             ],
                         )
                     }
@@ -17587,7 +17604,7 @@ pub mod api {
             )]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "A bucket and its agreements were torn down."]
+            #[doc = "A bucket was removed, by `delete_bucket` or by deleting its drive."]
             pub struct BucketDeleted {
                 pub bucket_id: bucket_deleted::BucketId,
             }
@@ -18212,44 +18229,6 @@ pub mod api {
                     pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
                 }
             }
-            #[derive(
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "The challenger withdrew the challenge before the provider"]
-            #[doc = "responded. The deposit went back to the challenger in full and"]
-            #[doc = "the provider's stats are untouched."]
-            pub struct ChallengeCancelled {
-                pub challenge_id: challenge_cancelled::ChallengeId,
-                pub bucket_id: challenge_cancelled::BucketId,
-                pub provider: challenge_cancelled::Provider,
-                pub challenger: challenge_cancelled::Challenger,
-                pub deposit: challenge_cancelled::Deposit,
-            }
-            pub mod challenge_cancelled {
-                use super::runtime_types;
-                pub type ChallengeId =
-                    runtime_types::storage_primitives::ChallengeId<::core::primitive::u32>;
-                pub type BucketId = ::core::primitive::u64;
-                pub type Provider = ::subxt::utils::AccountId32;
-                pub type Challenger = ::subxt::utils::AccountId32;
-                pub type Deposit = ::core::primitive::u128;
-            }
-            impl ChallengeCancelled {
-                const PALLET_NAME: &'static str = "StorageProvider";
-                const EVENT_NAME: &'static str = "ChallengeCancelled";
-            }
-            impl ::subxt::events::DecodeAsEvent for ChallengeCancelled {
-                fn is_event(pallet_name: &str, event_name: &str) -> bool {
-                    pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
-                }
-            }
         }
         pub mod storage {
             use super::root_mod;
@@ -18268,10 +18247,10 @@ pub mod api {
                         "StorageProvider",
                         "Providers",
                         [
-                            139u8, 130u8, 107u8, 93u8, 239u8, 166u8, 60u8, 57u8, 144u8, 108u8,
-                            249u8, 78u8, 45u8, 82u8, 97u8, 238u8, 185u8, 108u8, 127u8, 63u8, 162u8,
-                            166u8, 161u8, 27u8, 54u8, 228u8, 48u8, 149u8, 224u8, 141u8, 200u8,
-                            223u8,
+                            137u8, 181u8, 225u8, 75u8, 245u8, 255u8, 162u8, 204u8, 253u8, 108u8,
+                            237u8, 152u8, 42u8, 75u8, 118u8, 163u8, 21u8, 9u8, 145u8, 18u8, 224u8,
+                            58u8, 122u8, 225u8, 14u8, 28u8, 234u8, 238u8, 128u8, 184u8, 141u8,
+                            214u8,
                         ],
                     )
                 }
@@ -18326,9 +18305,9 @@ pub mod api {
                         "StorageProvider",
                         "Buckets",
                         [
-                            94u8, 138u8, 17u8, 48u8, 152u8, 138u8, 24u8, 166u8, 111u8, 41u8, 175u8,
-                            237u8, 125u8, 13u8, 34u8, 213u8, 85u8, 89u8, 99u8, 167u8, 189u8, 94u8,
-                            29u8, 240u8, 145u8, 84u8, 239u8, 213u8, 195u8, 50u8, 11u8, 209u8,
+                            132u8, 146u8, 27u8, 164u8, 233u8, 219u8, 110u8, 54u8, 93u8, 168u8,
+                            66u8, 251u8, 125u8, 6u8, 94u8, 212u8, 140u8, 183u8, 132u8, 92u8, 22u8,
+                            221u8, 69u8, 15u8, 72u8, 254u8, 99u8, 118u8, 40u8, 6u8, 186u8, 220u8,
                         ],
                     )
                 }
@@ -18347,9 +18326,10 @@ pub mod api {
                         "StorageProvider",
                         "StorageAgreements",
                         [
-                            49u8, 39u8, 182u8, 29u8, 245u8, 43u8, 9u8, 90u8, 253u8, 127u8, 47u8,
-                            231u8, 210u8, 148u8, 70u8, 89u8, 45u8, 180u8, 43u8, 97u8, 168u8, 57u8,
-                            138u8, 245u8, 225u8, 246u8, 104u8, 187u8, 27u8, 180u8, 92u8, 123u8,
+                            157u8, 211u8, 251u8, 120u8, 223u8, 153u8, 186u8, 100u8, 65u8, 142u8,
+                            199u8, 210u8, 173u8, 44u8, 200u8, 229u8, 2u8, 5u8, 117u8, 129u8, 79u8,
+                            230u8, 144u8, 35u8, 156u8, 224u8, 220u8, 208u8, 54u8, 173u8, 73u8,
+                            100u8,
                         ],
                     )
                 }
@@ -18403,9 +18383,10 @@ pub mod api {
                 #[doc = " Number of unresolved challenges currently outstanding against a"]
                 #[doc = " provider, summed across every bucket. Incremented in `create_challenge`"]
                 #[doc = " and decremented exactly once per resolution (defended in"]
-                #[doc = " `respond_to_challenge`, withdrawn in `cancel_challenge`, or timed out"]
-                #[doc = " in `resolve_expired_challenge`). Gates `complete_deregister`: a"]
-                #[doc = " provider cannot exit while still slashable for a pending challenge."]
+                #[doc = " `respond_to_challenge`, or timed out in `resolve_expired_challenge`)."]
+                #[doc = " Gates `complete_deregister`: a provider cannot exit while still"]
+                #[doc = " slashable for a pending challenge. An entry exists only while the"]
+                #[doc = " count is positive."]
                 pub fn pending_challenges(
                     &self,
                 ) -> ::subxt::storage::StaticAddress<
@@ -18426,7 +18407,10 @@ pub mod api {
                 #[doc = " Number of unresolved challenges outstanding against a specific"]
                 #[doc = " `(bucket, provider)` pair. Maintained in lockstep with"]
                 #[doc = " [`PendingChallenges`] and gates that bucket's agreement teardown"]
-                #[doc = " (`end_agreement`, `claim_expired_agreement`, `cleanup_bucket_internal`)."]
+                #[doc = " (`end_agreement`, `claim_expired_agreement`) and bucket removal"]
+                #[doc = " (`delete_bucket`, `cleanup_bucket_internal`). An entry exists only"]
+                #[doc = " while the count is positive, so a bucket with no entry under its"]
+                #[doc = " prefix has no open challenge."]
                 pub fn pending_challenges_by_bucket(
                     &self,
                 ) -> ::subxt::storage::StaticAddress<
@@ -20945,10 +20929,10 @@ pub mod api {
                                 transaction_encoded,
                             },
                             [
-                                85u8, 28u8, 172u8, 172u8, 13u8, 230u8, 240u8, 254u8, 180u8, 123u8,
-                                218u8, 12u8, 16u8, 112u8, 83u8, 130u8, 206u8, 248u8, 190u8, 53u8,
-                                127u8, 107u8, 250u8, 245u8, 144u8, 93u8, 249u8, 199u8, 121u8, 74u8,
-                                203u8, 248u8,
+                                66u8, 239u8, 250u8, 212u8, 209u8, 59u8, 89u8, 27u8, 206u8, 194u8,
+                                201u8, 232u8, 46u8, 103u8, 117u8, 214u8, 240u8, 234u8, 214u8, 98u8,
+                                186u8, 148u8, 179u8, 69u8, 47u8, 144u8, 55u8, 209u8, 169u8, 196u8,
+                                146u8, 36u8,
                             ],
                         )
                     }
@@ -21116,10 +21100,10 @@ pub mod api {
                                 call: ::subxt::alloc::boxed::Box::new(call),
                             },
                             [
-                                232u8, 0u8, 199u8, 213u8, 111u8, 114u8, 65u8, 60u8, 184u8, 183u8,
-                                156u8, 197u8, 98u8, 103u8, 135u8, 92u8, 245u8, 5u8, 46u8, 63u8,
-                                145u8, 7u8, 63u8, 254u8, 28u8, 108u8, 47u8, 37u8, 111u8, 42u8,
-                                123u8, 31u8,
+                                34u8, 5u8, 150u8, 172u8, 222u8, 222u8, 228u8, 124u8, 56u8, 38u8,
+                                142u8, 199u8, 118u8, 144u8, 49u8, 159u8, 245u8, 139u8, 222u8, 6u8,
+                                189u8, 32u8, 219u8, 162u8, 134u8, 73u8, 238u8, 250u8, 89u8, 105u8,
+                                179u8, 86u8,
                             ],
                         )
                     }
@@ -21482,10 +21466,9 @@ pub mod api {
                         "Revive",
                         "EthBlockBuilderIR",
                         [
-                            144u8, 112u8, 233u8, 184u8, 19u8, 30u8, 19u8, 141u8, 42u8, 95u8, 25u8,
-                            241u8, 132u8, 110u8, 1u8, 248u8, 170u8, 161u8, 66u8, 39u8, 118u8,
-                            137u8, 162u8, 254u8, 130u8, 23u8, 197u8, 202u8, 95u8, 52u8, 174u8,
-                            205u8,
+                            62u8, 22u8, 204u8, 180u8, 89u8, 208u8, 118u8, 104u8, 70u8, 79u8, 254u8,
+                            35u8, 81u8, 30u8, 181u8, 91u8, 139u8, 0u8, 140u8, 81u8, 45u8, 123u8,
+                            181u8, 158u8, 118u8, 82u8, 95u8, 24u8, 133u8, 117u8, 33u8, 133u8,
                         ],
                     )
                 }
@@ -22760,6 +22743,9 @@ pub mod api {
                             Debug,
                             Eq,
                             PartialEq,
+                            codec :: Decode,
+                            serde :: Deserialize,
+                            serde :: Serialize,
                         )]
                         #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                         #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
@@ -26226,6 +26212,9 @@ pub mod api {
                         runtime_types::storage_primitives::Commitment,
                     ); 6usize],
                     pub total_snapshots: ::core::primitive::u32,
+                    pub creator: ::subxt::utils::AccountId32,
+                    pub deposit:
+                        runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -26344,6 +26333,13 @@ pub mod api {
                         min_providers: ::core::primitive::u32,
                         visibility: runtime_types::storage_primitives::Visibility,
                     },
+                    #[codec(index = 19)]
+                    #[doc = "Admin only. Delete a bucket with no agreements (`BucketNotEmpty`)"]
+                    #[doc = "and no open challenges (`BucketHasPendingChallenge`). Releases the"]
+                    #[doc = "bucket deposit to its creator and each member deposit to the admin"]
+                    #[doc = "that added the member, and removes the bucket from each member's"]
+                    #[doc = "reverse index."]
+                    delete_bucket { bucket_id: ::core::primitive::u64 },
                     #[codec(index = 17)]
                     #[doc = "Redeem provider-signed primary terms. Equivalent to"]
                     #[doc = "[`Pallet::create_bucket`] followed by"]
@@ -26410,16 +26406,18 @@ pub mod api {
                         visibility: runtime_types::storage_primitives::Visibility,
                     },
                     #[codec(index = 13)]
-                    #[doc = "Admin only. Add a member or change their role. An admin may step"]
-                    #[doc = "down themselves but cannot demote another admin, and the last"]
-                    #[doc = "admin cannot step down."]
+                    #[doc = "Admin only. Add a member or change their role. Adding a member"]
+                    #[doc = "holds a storage deposit on the caller; a role change holds nothing."]
+                    #[doc = "An admin may step down themselves but cannot demote another admin,"]
+                    #[doc = "and the last admin cannot step down."]
                     set_member {
                         bucket_id: ::core::primitive::u64,
                         member: ::subxt::utils::AccountId32,
                         role: runtime_types::storage_primitives::Role,
                     },
                     #[codec(index = 14)]
-                    #[doc = "Admin only. Remove a member. Same admin protections as"]
+                    #[doc = "Admin only. Remove a member and release the entry's storage"]
+                    #[doc = "deposit to the admin that added them. Same admin protections as"]
                     #[doc = "`set_member`."]
                     remove_member {
                         bucket_id: ::core::primitive::u64,
@@ -26430,7 +26428,10 @@ pub mod api {
                     #[doc = ""]
                     #[doc = "Anyone can call this to clean up slashed providers."]
                     #[doc = "The provider must have zero stake (indicating they were slashed)."]
-                    #[doc = "Returns payment to agreement owner and removes the provider from the bucket."]
+                    #[doc = "Returns the escrow to the agreement owner and the storage deposit"]
+                    #[doc = "to its depositor, and removes the provider from the bucket. The"]
+                    #[doc = "provider's own deposit is on its provider record and is released"]
+                    #[doc = "by `complete_deregister`; slashing takes the stake only."]
                     remove_slashed {
                         bucket_id: ::core::primitive::u64,
                         provider: ::subxt::utils::AccountId32,
@@ -26491,6 +26492,10 @@ pub mod api {
                     #[doc = "balance — moves to `new_owner` and stays on hold; every later"]
                     #[doc = "settlement and refund uses the new owner."]
                     #[doc = ""]
+                    #[doc = "The agreement's storage deposit stays on the account that opened"]
+                    #[doc = "the agreement until the agreement is removed; `new_owner` pays"]
+                    #[doc = "nothing and decides when to settle."]
+                    #[doc = ""]
                     #[doc = "Bucket membership does not move: the new owner cannot write to or"]
                     #[doc = "administer the bucket, and the bucket admin keeps every admin"]
                     #[doc = "power over the agreement, including early termination, which pays"]
@@ -26541,7 +26546,10 @@ pub mod api {
                     },
                     #[codec(index = 31)]
                     #[doc = "Writer or admin. Add signatures from primary providers that signed"]
-                    #[doc = "the current snapshot late."]
+                    #[doc = "the current snapshot late. A primary added after the checkpoint"]
+                    #[doc = "becomes challengeable for this snapshot once its signature is added"]
+                    #[doc = "here. Signers already in the bitfield are skipped without"]
+                    #[doc = "verification."]
                     extend_checkpoint {
                         bucket_id: ::core::primitive::u64,
                         additional_signatures:
@@ -26602,18 +26610,6 @@ pub mod api {
                         challenge_id:
                             runtime_types::storage_primitives::ChallengeId<::core::primitive::u32>,
                         response: runtime_types::pallet_storage_provider::pallet::ChallengeResponse,
-                    },
-                    #[codec(index = 44)]
-                    #[doc = "Challenger only. Withdraw a challenge before the provider has"]
-                    #[doc = "responded: the challenge is removed and the deposit is released in"]
-                    #[doc = "full. The provider's stats do not change."]
-                    #[doc = ""]
-                    #[doc = "Only valid up to the deadline, like `respond_to_challenge`. Past"]
-                    #[doc = "it the provider can be slashed with `resolve_expired_challenge`"]
-                    #[doc = "and cancelling is rejected (`ChallengeExpired`)."]
-                    cancel_challenge {
-                        challenge_id:
-                            runtime_types::storage_primitives::ChallengeId<::core::primitive::u32>,
                     },
                     #[codec(index = 45)]
                     #[doc = "Slash a provider whose challenge expired without a response."]
@@ -26879,8 +26875,7 @@ pub mod api {
                     #[doc = "No challenge with this id."]
                     ChallengeNotFound,
                     #[codec(index = 46)]
-                    #[doc = "The challenge deadline has passed, so it can no longer be answered"]
-                    #[doc = "or cancelled. Call `resolve_expired_challenge` to settle it."]
+                    #[doc = "The response deadline has passed."]
                     ChallengeExpired,
                     #[codec(index = 47)]
                     #[doc = "The deadline has not passed; the provider may still respond."]
@@ -26902,90 +26897,98 @@ pub mod api {
                     #[doc = "challenged leaf. The challenge stays open."]
                     InvalidSupersededClaim,
                     #[codec(index = 52)]
-                    #[doc = "Only the challenger who opened the challenge may cancel it."]
-                    NotChallengeChallenger,
-                    #[codec(index = 53)]
                     #[doc = "The provider did not sign the bucket's current snapshot, so there"]
                     #[doc = "is no on-chain commitment to challenge; use `challenge_offchain`"]
-                    #[doc = "with a signed commitment instead."]
+                    #[doc = "with a signed commitment instead. `checkpoint` and"]
+                    #[doc = "`extend_checkpoint` return it when a signer is not a primary of"]
+                    #[doc = "the bucket."]
                     ProviderNotInSnapshot,
-                    #[codec(index = 54)]
+                    #[codec(index = 53)]
                     #[doc = "`target.leaf_index` is not below the commitment's `leaf_count`: the"]
                     #[doc = "leaf does not exist, so no proof could defend the challenge. Pick a"]
                     #[doc = "`leaf_index` below `leaf_count`."]
                     LeafNotInCommitment,
-                    #[codec(index = 55)]
+                    #[codec(index = 54)]
                     #[doc = "A provider with unresolved challenges (`PendingChallenges > 0`)"]
                     #[doc = "cannot complete deregistration — they are still slashable."]
                     ProviderHasPendingChallenges,
-                    #[codec(index = 56)]
+                    #[codec(index = 55)]
                     #[doc = "An agreement with an unresolved challenge against this"]
                     #[doc = "`(bucket, provider)` cannot be torn down until the challenge"]
                     #[doc = "resolves (defended or timed out)."]
                     AgreementHasPendingChallenge,
-                    #[codec(index = 57)]
+                    #[codec(index = 56)]
                     #[doc = "`MaxChallengesPerDeadline` challenges have already been allocated"]
                     #[doc = "for the deadline this challenge would land on."]
                     TooManyChallengesThisBlock,
-                    #[codec(index = 58)]
+                    #[codec(index = 57)]
                     #[doc = "A provider signature does not verify against the commitment."]
                     InvalidSignature,
-                    #[codec(index = 59)]
+                    #[codec(index = 58)]
                     #[doc = "The bucket has no checkpoint yet."]
                     NoSnapshot,
-                    #[codec(index = 60)]
+                    #[codec(index = 59)]
                     #[doc = "A frozen bucket only accepts checkpoints that keep its"]
                     #[doc = "`frozen_start_seq`."]
                     SnapshotViolatesFrozen,
-                    #[codec(index = 61)]
+                    #[codec(index = 60)]
                     #[doc = "Fewer valid provider signatures than the bucket's `min_providers`,"]
                     #[doc = "or none."]
                     InsufficientSignatures,
-                    #[codec(index = 62)]
+                    #[codec(index = 61)]
                     #[doc = "A balance or counter computation overflowed."]
                     ArithmeticOverflow,
-                    #[codec(index = 63)]
+                    #[codec(index = 62)]
                     #[doc = "The public key is not 32 bytes (sr25519/ed25519) or 33 bytes"]
                     #[doc = "(compressed ecdsa), or does not match the signature's scheme."]
                     InvalidPublicKey,
-                    #[codec(index = 64)]
+                    #[codec(index = 63)]
                     #[doc = "Account is a member of too many buckets."]
                     TooManyBucketsForMember,
-                    #[codec(index = 65)]
+                    #[codec(index = 64)]
                     #[doc = "Provider signature over the SCALE-encoded terms is invalid."]
                     InvalidProviderSignature,
-                    #[codec(index = 66)]
+                    #[codec(index = 65)]
                     #[doc = "Signed terms have passed their `valid_until` block."]
                     TermsExpired,
-                    #[codec(index = 67)]
+                    #[codec(index = 66)]
                     #[doc = "Signed terms' `valid_until` extends beyond `now + RequestTimeout` —"]
                     #[doc = "the provider-signed validity window cap enforced on-chain."]
                     TermsValidityTooLong,
-                    #[codec(index = 68)]
+                    #[codec(index = 67)]
                     #[doc = "The terms' nonce does not match the owner's next expected"]
                     #[doc = "[`AgreementNonces`] value. Read the current value and request a"]
                     #[doc = "new quote with it."]
                     NonceMismatch,
-                    #[codec(index = 69)]
+                    #[codec(index = 68)]
                     #[doc = "The terms' declared owner does not match the extrinsic origin."]
                     TermsOwnerMismatch,
-                    #[codec(index = 70)]
+                    #[codec(index = 69)]
                     #[doc = "Replica terms missing from a signed quote redeemed as a replica"]
                     #[doc = "agreement."]
                     MissingReplicaTerms,
-                    #[codec(index = 71)]
+                    #[codec(index = 70)]
                     #[doc = "Replica terms present in a signed quote redeemed as a primary"]
                     #[doc = "agreement. Negotiate the quote without `replica_params`, or"]
                     #[doc = "redeem it with `add_replica_provider`."]
                     UnexpectedReplicaTerms,
-                    #[codec(index = 72)]
+                    #[codec(index = 71)]
                     #[doc = "The terms' `bucket` does not name the bucket the call targets:"]
                     #[doc = "`New` is redeemable only by the calls that create a bucket, and"]
                     #[doc = "`Existing(id)` only against bucket `id`."]
                     TermsBucketMismatch,
-                    #[codec(index = 73)]
+                    #[codec(index = 72)]
                     #[doc = "Storage agreement requested 0 byte"]
                     InvalidMaxBytesRequest,
+                    #[codec(index = 73)]
+                    #[doc = "A challenge against a provider on this bucket is still open."]
+                    #[doc = "Resolve it with `respond_to_challenge` or"]
+                    #[doc = "`resolve_expired_challenge`, then retry."]
+                    BucketHasPendingChallenge,
+                    #[codec(index = 74)]
+                    #[doc = "The bucket still has a storage agreement. End or claim every"]
+                    #[doc = "agreement before deleting the bucket."]
+                    BucketNotEmpty,
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -27066,7 +27069,7 @@ pub mod api {
                         frozen_start_seq: ::core::primitive::u64,
                     },
                     #[codec(index = 10)]
-                    #[doc = "A bucket and its agreements were torn down."]
+                    #[doc = "A bucket was removed, by `delete_bucket` or by deleting its drive."]
                     BucketDeleted { bucket_id: ::core::primitive::u64 },
                     #[codec(index = 11)]
                     #[doc = "An admin changed who may read the bucket."]
@@ -27231,18 +27234,6 @@ pub mod api {
                         provider: ::subxt::utils::AccountId32,
                         slashed_amount: ::core::primitive::u128,
                     },
-                    #[codec(index = 29)]
-                    #[doc = "The challenger withdrew the challenge before the provider"]
-                    #[doc = "responded. The deposit went back to the challenger in full and"]
-                    #[doc = "the provider's stats are untouched."]
-                    ChallengeCancelled {
-                        challenge_id:
-                            runtime_types::storage_primitives::ChallengeId<::core::primitive::u32>,
-                        bucket_id: ::core::primitive::u64,
-                        provider: ::subxt::utils::AccountId32,
-                        challenger: ::subxt::utils::AccountId32,
-                        deposit: ::core::primitive::u128,
-                    },
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -27261,6 +27252,8 @@ pub mod api {
                     AgreementPayment,
                     #[codec(index = 2)]
                     ChallengeDeposit,
+                    #[codec(index = 3)]
+                    StorageDeposit,
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -27275,6 +27268,9 @@ pub mod api {
                 pub struct Member {
                     pub account: ::subxt::utils::AccountId32,
                     pub role: runtime_types::storage_primitives::Role,
+                    pub depositor: ::subxt::utils::AccountId32,
+                    pub deposit:
+                        runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -27300,6 +27296,8 @@ pub mod api {
                     pub settings: runtime_types::pallet_storage_provider::pallet::ProviderSettings,
                     pub stats: runtime_types::pallet_storage_provider::pallet::ProviderStats,
                     pub deregister_at: ::core::option::Option<::core::primitive::u32>,
+                    pub deposit:
+                        runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
                 }
                 #[derive(
                     :: subxt :: ext :: scale_decode :: DecodeAsType,
@@ -27369,6 +27367,9 @@ pub mod api {
                         ::core::primitive::u32,
                     >,
                     pub started_at: ::core::primitive::u32,
+                    pub depositor: ::subxt::utils::AccountId32,
+                    pub deposit:
+                        runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
                 }
             }
             pub mod runtime_api {
@@ -31876,7 +31877,10 @@ pub mod api {
             pub struct BucketSnapshot<_0> {
                 pub commitment: runtime_types::storage_primitives::Commitment,
                 pub checkpoint_block: _0,
-                pub primary_signers: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                pub primary_signers: ::subxt::utils::bits::DecodedBits<
+                    ::core::primitive::u8,
+                    ::subxt::utils::bits::Lsb0,
+                >,
             }
             #[derive(
                 :: subxt :: ext :: scale_decode :: DecodeAsType,

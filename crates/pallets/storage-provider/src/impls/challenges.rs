@@ -52,7 +52,10 @@ impl<T: Config> Pallet<T> {
             .position(|p| p == &provider)
             .ok_or(Error::<T>::ProviderNotInSnapshot)?;
         ensure!(
-            snapshot.has_provider_signed(provider_idx),
+            snapshot
+                .primary_signers
+                .get(provider_idx)
+                .is_some_and(|signed| *signed),
             Error::<T>::ProviderNotInSnapshot
         );
 
@@ -160,10 +163,9 @@ impl<T: Config> Pallet<T> {
         // Bump the pending-challenge counters. These are decremented
         // exactly once per resolution (defended in `respond_to_challenge`,
         // withdrawn in `cancel_challenge`, or timed out in
-        // `resolve_expired_challenge`), so a fully-resolved provider/bucket
-        // returns to 0. They gate
-        // `complete_deregister` and agreement teardown so a provider can't
-        // escape a live challenge.
+        // `resolve_expired_challenge`), and an entry that reaches 0 is
+        // deleted. They gate `complete_deregister` and agreement teardown so
+        // a provider can't escape a live challenge.
         PendingChallenges::<T>::mutate(&provider, |n| *n = n.saturating_add(1));
         PendingChallengesByBucket::<T>::mutate(bucket_id, &provider, |n| *n = n.saturating_add(1));
 
@@ -216,15 +218,30 @@ impl<T: Config> Pallet<T> {
         });
     }
 
-    /// Decrement both pending-challenge counters for a resolved
-    /// `(bucket, provider)` challenge. Called from the three resolution
-    /// sites, after the `take` consumes the challenge: `respond_to_challenge`,
-    /// `cancel_challenge` and `resolve_expired_challenge`. Never called from
-    /// `slash_provider_for_failed_challenge`, which would double-count.
-    /// `saturating_sub` keeps the counters non-negative even if invariants
-    /// are ever violated.
+    /// Marks one challenge against `provider` on `bucket_id` as resolved.
+    /// A counter that reaches 0 is deleted, so both maps only contain
+    /// providers with an open challenge.
     pub(crate) fn decrement_pending(bucket_id: BucketId, provider: &T::AccountId) {
-        PendingChallenges::<T>::mutate(provider, |n| *n = n.saturating_sub(1));
-        PendingChallengesByBucket::<T>::mutate(bucket_id, provider, |n| *n = n.saturating_sub(1));
+        PendingChallenges::<T>::mutate_exists(provider, Self::decrement_or_delete);
+        PendingChallengesByBucket::<T>::mutate_exists(
+            bucket_id,
+            provider,
+            Self::decrement_or_delete,
+        );
+    }
+
+    fn decrement_or_delete(count: &mut Option<u32>) {
+        *count = count.and_then(|n| n.checked_sub(1)).filter(|n| *n > 0);
+    }
+
+    /// Fails while any provider has an open challenge on `bucket_id`.
+    pub(crate) fn ensure_no_pending_challenge(bucket_id: BucketId) -> DispatchResult {
+        ensure!(
+            PendingChallengesByBucket::<T>::iter_key_prefix(bucket_id)
+                .next()
+                .is_none(),
+            Error::<T>::BucketHasPendingChallenge
+        );
+        Ok(())
     }
 }
